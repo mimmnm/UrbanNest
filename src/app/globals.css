@@ -1,0 +1,177 @@
+@import "tailwindcss";
+
+/* ───────────────────────────────────────────
+   UrbanNest – Bright Minimalist Design System
+   Fonts : Jost · Quicksand · Schoolbell
+   Palette : crisp whites, bright gold, airy neutrals
+   ─────────────────────────────────────────── */
+
+@theme {
+  --font-display: var(--font-jost), "Jost", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: var(--font-quicksand), "Quicksand", ui-sans-serif, system-ui, sans-serif;
+  --font-accent: var(--font-schoolbell), "Schoolbell", cursive;
+
+  --color-primary: #111111;
+  --color-background: #ffffff;
+  --color-surface: #f8f6f3;
+  --color-accent: #66a80f;
+  --color-accent-light: #e8f5d6;
+  --color-muted: #a1a1aa;
+}
+
+/* ── Base ─────────────────────────────────── */
+
+html {
+  scroll-behavior: smooth;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  font-family: var(--font-sans);
+  background-color: var(--color-background);
+  color: var(--color-primary);
+  line-height: 1.7;
+}
+
+::selection {
+  background-color: #66a80f40;
+  color: #111111;
+}
+
+/* ── Typography helpers ──────────────────── */
+
+.font-display {
+  font-family: var(--font-display);
+}
+
+.font-accent {
+  font-family: var(--font-accent);
+}
+
+/* ── Glassmorphism ───────────────────────── */
+
+.glass {
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.04);
+}
+
+/* ── Interaction utilities ───────────────── */
+
+@utility hover-lift {
+  transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+  &:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.05);
+  }
+}
+
+@utility img-zoom {
+  overflow: hidden;
+  & > img {
+    transition: transform 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  &:hover > img {
+    transform: scale(1.06);
+  }
+}
+
+@utility link-underline {
+  position: relative;
+  &::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    bottom: -2px;
+    width: 0;
+    height: 1.5px;
+    background-color: #66a80f;
+    transition: width 0.3s ease;
+  }
+  &:hover::after {
+    width: 100%;
+  }
+}
+
+/* ── Buttons ─────────────────────────────── */
+
+@utility btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.75rem 2rem;
+  border-radius: 9999px;
+  font-family: var(--font-display);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  color: #fff;
+  background-color: #111111;
+  transition: background-color 0.3s ease, transform 0.2s ease;
+  &:hover {
+    background-color: #66a80f;
+    transform: translateY(-1px);
+  }
+}
+
+@utility btn-outline {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.75rem 2rem;
+  border-radius: 9999px;
+  font-family: var(--font-display);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  color: #111111;
+  border: 1.5px solid #d4e8c2;
+  transition: border-color 0.3s ease, background-color 0.3s ease;
+  &:hover {
+    border-color: #66a80f;
+    background-color: rgba(102, 168, 15, 0.05);
+  }
+}
+
+/* ── Animations ──────────────────────────── */
+
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slide-up {
+  from { opacity: 0; transform: translateY(24px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-6px); }
+}
+
+@keyframes shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.animate-fade-in  { animation: fade-in 0.5s ease both; }
+.animate-slide-up { animation: slide-up 0.6s ease both; }
+.animate-float    { animation: float 3s ease-in-out infinite; }
+.animate-shimmer  {
+  background: linear-gradient(90deg, transparent 25%, rgba(102,168,15,0.1) 50%, transparent 75%);
+  background-size: 200% 100%;
+  animation: shimmer 2s infinite;
+}
+
+/* ── Scrollbar (webkit) ──────────────────── */
+
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #d4e8c2; border-radius: 99px; }
+::-webkit-scrollbar-thumb:hover { background: #66a80f; }
