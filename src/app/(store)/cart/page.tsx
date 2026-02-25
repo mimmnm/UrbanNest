@@ -7,6 +7,12 @@ import { Minus, Plus, X, ShoppingBag, ArrowRight } from "lucide-react";
 import { useCart } from "@/lib/cart-context";
 import { formatPrice } from "@/lib/utils";
 
+function getProductImage(product: { image?: string; images?: string[] }): string {
+  if (product.images && product.images.length > 0) return product.images[0];
+  if (product.image) return product.image;
+  return "/placeholder.png";
+}
+
 export default function CartPage() {
   const { items, removeItem, updateQuantity, totalPrice, totalItems } = useCart();
 
@@ -67,11 +73,11 @@ export default function CartPage() {
                 className="flex gap-4 sm:gap-6 p-4 bg-white rounded-2xl border border-[#d4e8c2]/40"
               >
                 <Link
-                  href={`/products/${item.product.slug}`}
+                  href={`/products/${item.product.slug || item.product.id}`}
                   className="relative w-24 h-24 sm:w-32 sm:h-32 rounded-xl overflow-hidden bg-[#f8f6f3] flex-shrink-0"
                 >
                   <Image
-                    src={item.product.images[0]}
+                    src={getProductImage(item.product)}
                     alt={item.product.name}
                     fill
                     className="object-cover"
@@ -83,7 +89,7 @@ export default function CartPage() {
                     <div className="flex items-start justify-between gap-2">
                       <div>
                         <Link
-                          href={`/products/${item.product.slug}`}
+                          href={`/products/${item.product.slug || item.product.id}`}
                           className="font-display text-sm font-medium text-[#111111] hover:text-[#66a80f] transition-colors"
                         >
                           {item.product.name}
@@ -153,13 +159,7 @@ export default function CartPage() {
                 <div className="flex justify-between text-sm">
                   <span className="text-[#a1a1aa]">Shipping</span>
                   <span className="font-display font-medium text-[#111111]">
-                    {totalPrice > 7500 ? "Free" : formatPrice(150)}
-                  </span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-[#a1a1aa]">Tax</span>
-                  <span className="font-display font-medium text-[#111111]">
-                    {formatPrice(Math.round(totalPrice * 0.05))}
+                    {totalPrice >= 7500 ? "Free" : formatPrice(120)}
                   </span>
                 </div>
               </div>
@@ -172,8 +172,7 @@ export default function CartPage() {
                   <span className="font-display text-xl font-semibold text-[#111111]">
                     {formatPrice(
                       totalPrice +
-                        (totalPrice > 7500 ? 0 : 150) +
-                        Math.round(totalPrice * 0.05)
+                        (totalPrice >= 7500 ? 0 : 120)
                     )}
                   </span>
                 </div>

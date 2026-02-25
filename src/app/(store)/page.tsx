@@ -4,9 +4,9 @@ import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowRight, ChevronRight, Sparkles, Truck, RotateCcw, Shield, Star } from "lucide-react";
+import { ArrowRight, ChevronRight, Sparkles, Truck, RotateCcw, Shield, Star, Loader2 } from "lucide-react";
 import ProductCard from "@/components/store/ProductCard";
-import { categories, products } from "@/lib/data";
+import type { Product, Category } from "@/lib/data";
 
 /* ── Hero slides ─────────────────────────────────── */
 const heroSlides = [
@@ -22,14 +22,14 @@ const heroSlides = [
     subtitle: "Skincare Essentials",
     accent: "pure & natural",
     image: "https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=1600&q=80",
-    href: "/categories/skincare",
+    href: "/products?category=skincare",
   },
   {
     title: "Fragrance Stories",
     subtitle: "Signature Scents",
     accent: "captivating blends",
     image: "https://images.unsplash.com/photo-1541643600914-78b084683601?w=1600&q=80",
-    href: "/categories/fragrances",
+    href: "/products?category=fragrances",
   },
 ];
 
@@ -54,6 +54,10 @@ const testimonials = [
 
 export default function HomePage() {
   const [currentSlide, setCurrentSlide] = useState(0);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [bestSellers, setBestSellers] = useState<Product[]>([]);
+  const [newArrivals, setNewArrivals] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -62,8 +66,28 @@ export default function HomePage() {
     return () => clearInterval(timer);
   }, []);
 
-  const bestSellers = products.filter((p) => p.isBestSeller);
-  const newArrivals = products.filter((p) => p.isNew);
+  useEffect(() => {
+    async function fetchData() {
+      try {
+        const [catRes, bsRes, naRes] = await Promise.all([
+          fetch("/api/categories"),
+          fetch("/api/products?filter=bestseller&limit=8"),
+          fetch("/api/products?filter=new&limit=8"),
+        ]);
+        const catData = catRes.ok ? await catRes.json() : { categories: [] };
+        const bsData = bsRes.ok ? await bsRes.json() : { products: [] };
+        const naData = naRes.ok ? await naRes.json() : { products: [] };
+        setCategories(catData.categories || []);
+        setBestSellers(bsData.products || []);
+        setNewArrivals(naData.products || []);
+      } catch (err) {
+        console.error("Failed to fetch homepage data:", err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchData();
+  }, []);
 
   return (
     <div>
@@ -197,22 +221,28 @@ export default function HomePage() {
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-6">
             {categories.slice(0, 6).map((cat, idx) => (
               <motion.div
-                key={cat.id}
+                key={cat.slug}
                 initial={{ opacity: 0, y: 24 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: idx * 0.08, ease: [0.22, 1, 0.36, 1] }}
               >
                 <Link
-                  href={`/categories/${cat.id}`}
+                  href={`/products?category=${cat.slug}`}
                   className="group block relative aspect-[4/5] rounded-2xl overflow-hidden bg-white"
                 >
-                  <Image
-                    src={cat.image}
-                    alt={cat.name}
-                    fill
-                    className="object-cover transition-transform duration-700 group-hover:scale-105"
-                  />
+                  {cat.image ? (
+                    <Image
+                      src={cat.image}
+                      alt={cat.name}
+                      fill
+                      className="object-cover transition-transform duration-700 group-hover:scale-105"
+                    />
+                  ) : (
+                    <div className="absolute inset-0 bg-[#f8f6f3] flex items-center justify-center">
+                      <span className="font-display text-3xl text-[#d4e8c2]">{cat.name.charAt(0)}</span>
+                    </div>
+                  )}
                   <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/10 to-transparent" />
                   <div className="absolute bottom-0 left-0 right-0 p-5 md:p-6">
                     <h3 className="font-display text-lg md:text-xl font-semibold text-white mb-0.5">
@@ -294,7 +324,7 @@ export default function HomePage() {
               Your skin deserves the best.
             </p>
             <Link
-              href="/categories/skincare"
+              href="/products?category=skincare"
               className="inline-flex items-center gap-2 px-8 py-3.5 bg-[#66a80f] text-white rounded-full font-display text-sm font-medium tracking-wide hover:bg-white hover:text-[#111111] transition-all duration-400"
             >
               Shop Skincare

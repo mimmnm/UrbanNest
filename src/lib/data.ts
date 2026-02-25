@@ -1,16 +1,20 @@
 export interface Category {
   id: string;
+  slug: string;
   name: string;
+  description?: string;
   image: string;
   productCount: number;
 }
 
 export interface Product {
   id: string;
+  slug?: string;
   name: string;
   price: number;
   originalPrice: number;
   image: string;
+  images?: string[];
   category: string;
   rating: number;
   reviews: number;
@@ -18,6 +22,10 @@ export interface Product {
   inStock: boolean;
   isNew?: boolean;
   isBestSeller?: boolean;
+  featured?: boolean;
+  colors?: string[];
+  sizes?: string[];
+  tags?: string[];
 }
 
 export interface Order {
@@ -43,36 +51,42 @@ export interface Customer {
 export const categories: Category[] = [
   {
     id: "skincare",
+    slug: "skincare",
     name: "Skincare",
     image: "https://images.unsplash.com/photo-1556228578-0d85b1a4d571?w=600&q=80",
     productCount: 48,
   },
   {
     id: "makeup",
+    slug: "makeup",
     name: "Makeup",
     image: "https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?w=600&q=80",
     productCount: 56,
   },
   {
     id: "haircare",
+    slug: "haircare",
     name: "Haircare",
     image: "https://images.unsplash.com/photo-1527799820374-dcf8d9d4a388?w=600&q=80",
     productCount: 32,
   },
   {
     id: "fragrances",
+    slug: "fragrances",
     name: "Fragrances",
     image: "https://images.unsplash.com/photo-1541643600914-78b084683601?w=600&q=80",
     productCount: 24,
   },
   {
     id: "fashion",
+    slug: "fashion",
     name: "Fashion",
     image: "https://images.unsplash.com/photo-1469334031218-e382a71b716b?w=600&q=80",
     productCount: 72,
   },
   {
     id: "accessories",
+    slug: "accessories",
     name: "Accessories",
     image: "https://images.unsplash.com/photo-1611085583191-a3b181a88401?w=600&q=80",
     productCount: 40,

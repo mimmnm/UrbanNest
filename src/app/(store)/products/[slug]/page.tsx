@@ -1,23 +1,65 @@
 "use client";
 
-import { use, useState } from "react";
+import { use, useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { Star, Minus, Plus, Heart, Share2, ChevronRight, Truck, RotateCcw, ShieldCheck } from "lucide-react";
-import { products } from "@/lib/data";
+import { Star, Minus, Plus, Heart, Share2, ChevronRight, Truck, RotateCcw, ShieldCheck, Loader2 } from "lucide-react";
 import { formatPrice } from "@/lib/utils";
 import { useCart } from "@/lib/cart-context";
 import ProductCard from "@/components/store/ProductCard";
+import type { Product } from "@/lib/data";
 
 export default function ProductDetailPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = use(params);
-  const product = products.find((p) => p.id === slug);
   const { addItem } = useCart();
+  const [product, setProduct] = useState<(Product & { images?: string[]; colors?: string[]; sizes?: string[] }) | null>(null);
+  const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [notFound, setNotFound] = useState(false);
   const [qty, setQty] = useState(1);
   const [added, setAdded] = useState(false);
+  const [selectedImage, setSelectedImage] = useState(0);
 
-  if (!product) {
+  useEffect(() => {
+    async function fetchProduct() {
+      try {
+        const res = await fetch(`/api/products/${slug}`);
+        if (!res.ok) {
+          setNotFound(true);
+          setLoading(false);
+          return;
+        }
+        const data = await res.json();
+        setProduct(data.product);
+
+        // Fetch related products
+        if (data.product?.category) {
+          const relRes = await fetch(`/api/products?category=${data.product.category}&limit=4`);
+          const relData = await relRes.json();
+          setRelatedProducts(
+            (relData.products || []).filter((p: Product) => p.slug !== slug && p.id !== data.product.id).slice(0, 4)
+          );
+        }
+      } catch (err) {
+        console.error("Failed to fetch product:", err);
+        setNotFound(true);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchProduct();
+  }, [slug]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-[#66a80f]" />
+      </div>
+    );
+  }
+
+  if (notFound || !product) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
@@ -28,16 +70,26 @@ export default function ProductDetailPage({ params }: { params: Promise<{ slug: 
     );
   }
 
-  const relatedProducts = products.filter((p) => p.category === product.category && p.id !== product.id).slice(0, 4);
+  const images = product.images && product.images.length > 0 ? product.images : [product.image];
 
   const handleAdd = () => {
     const cartProduct = {
-      ...product,
-      slug: product.id,
-      images: [product.image],
-      tags: [],
-      featured: product.isBestSeller || false,
+      id: product.id,
+      name: product.name,
+      slug: product.slug || slug,
+      description: product.description,
+      price: product.price,
+      originalPrice: product.originalPrice,
+      images: images,
+      category: product.category,
+      tags: product.tags || [],
+      rating: product.rating,
+      reviews: product.reviews,
+      inStock: product.inStock,
+      featured: product.featured || product.isBestSeller || false,
       isNew: product.isNew || false,
+      colors: product.colors,
+      sizes: product.sizes,
     };
     addItem(cartProduct, qty);
     setAdded(true);
@@ -62,10 +114,23 @@ export default function ProductDetailPage({ params }: { params: Promise<{ slug: 
           {/* image */}
           <motion.div initial={{ opacity: 0, x: -30 }} animate={{ opacity: 1, x: 0 }} className="relative">
             <div className="aspect-square bg-[#f8f6f3] rounded-3xl overflow-hidden">
-              <Image src={product.image} alt={product.name} width={700} height={700} className="w-full h-full object-cover" />
+              <Image src={images[selectedImage]} alt={product.name} width={700} height={700} className="w-full h-full object-cover" />
             </div>
             {product.isNew && (
               <span className="absolute top-5 left-5 bg-[#111111] text-white text-[10px] font-display uppercase tracking-[0.15em] px-3 py-1.5 rounded-full">New</span>
+            )}
+            {images.length > 1 && (
+              <div className="flex gap-3 mt-4">
+                {images.map((img, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => setSelectedImage(idx)}
+                    className={`relative w-16 h-16 rounded-xl overflow-hidden border-2 transition-all ${selectedImage === idx ? "border-[#66a80f]" : "border-transparent opacity-60 hover:opacity-100"}`}
+                  >
+                    <Image src={img} alt={`${product.name} ${idx + 1}`} fill className="object-cover" />
+                  </button>
+                ))}
+              </div>
             )}
           </motion.div>
 

@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { Suspense, useState, useMemo, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
-import { SlidersHorizontal, Grid3X3, Grid2X2, X } from "lucide-react";
+import { SlidersHorizontal, Grid3X3, Grid2X2, X, Loader2 } from "lucide-react";
 import ProductCard from "@/components/store/ProductCard";
-import { products, categories } from "@/lib/data";
+import type { Product, Category } from "@/lib/data";
 
 const sortOptions = [
   { value: "featured", label: "Featured" },
@@ -14,10 +15,55 @@ const sortOptions = [
 ];
 
 export default function ProductsPage() {
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-  const [sortBy, setSortBy] = useState("featured");
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><Loader2 className="w-8 h-8 animate-spin text-[#66a80f]" /></div>}>
+      <ProductsContent />
+    </Suspense>
+  );
+}
+
+function ProductsContent() {
+  const searchParams = useSearchParams();
+  const categoryParam = searchParams.get("category");
+  const filterParam = searchParams.get("filter");
+  const searchParam = searchParams.get("search");
+
+  const [products, setProducts] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(categoryParam);
+  const [sortBy, setSortBy] = useState(filterParam === "new" ? "newest" : "featured");
   const [gridCols, setGridCols] = useState<3 | 4>(4);
   const [showFilters, setShowFilters] = useState(false);
+
+  // Sync selectedCategory when URL changes
+  useEffect(() => {
+    setSelectedCategory(categoryParam);
+  }, [categoryParam]);
+
+  useEffect(() => {
+    async function fetchData() {
+      try {
+        const params = new URLSearchParams();
+        params.set("limit", "100");
+        if (searchParam) params.set("search", searchParam);
+        const [prodRes, catRes] = await Promise.all([
+          fetch(`/api/products?${params}`),
+          fetch("/api/categories"),
+        ]);
+        if (!prodRes.ok || !catRes.ok) throw new Error("Failed to fetch");
+        const prodData = await prodRes.json();
+        const catData = await catRes.json();
+        setProducts(prodData.products || []);
+        setCategories(catData.categories || []);
+      } catch (err) {
+        console.error("Failed to fetch products:", err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchData();
+  }, [searchParam]);
 
   const filteredProducts = useMemo(() => {
     let result = [...products];
@@ -25,6 +71,13 @@ export default function ProductsPage() {
       result = result.filter((p) => p.category === selectedCategory);
     }
     switch (sortBy) {
+      case "featured":
+        result.sort((a, b) => {
+          const af = a.featured || a.isBestSeller ? 1 : 0;
+          const bf = b.featured || b.isBestSeller ? 1 : 0;
+          return bf - af;
+        });
+        break;
       case "newest":
         result = result.filter((p) => p.isNew).concat(result.filter((p) => !p.isNew));
         break;
@@ -36,7 +89,15 @@ export default function ProductsPage() {
         break;
     }
     return result;
-  }, [selectedCategory, sortBy]);
+  }, [products, selectedCategory, sortBy]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-[#66a80f]" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen">
@@ -46,7 +107,7 @@ export default function ProductsPage() {
             explore our collection
           </motion.p>
           <motion.h1 initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="font-display text-3xl md:text-4xl font-semibold text-[#111111] mb-2">
-            {selectedCategory ? categories.find((c) => c.id === selectedCategory)?.name : "All Products"}
+            {selectedCategory ? categories.find((c) => c.slug === selectedCategory)?.name : "All Products"}
           </motion.h1>
           <motion.p initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }} className="text-sm text-[#a1a1aa] font-display">
             {filteredProducts.length} products
@@ -88,8 +149,8 @@ export default function ProductsPage() {
                     </button>
                   </li>
                   {categories.map((cat) => (
-                    <li key={cat.id}>
-                      <button onClick={() => setSelectedCategory(cat.id)} className={`font-display text-sm transition-colors ${selectedCategory === cat.id ? "text-[#66a80f] font-medium" : "text-[#a1a1aa] hover:text-[#111111]"}`}>
+                    <li key={cat.slug}>
+                      <button onClick={() => setSelectedCategory(cat.slug)} className={`font-display text-sm transition-colors ${selectedCategory === cat.slug ? "text-[#66a80f] font-medium" : "text-[#a1a1aa] hover:text-[#111111]"}`}>
                         {cat.name}
                       </button>
                     </li>
@@ -105,7 +166,7 @@ export default function ProductsPage() {
               {selectedCategory && (
                 <div className="flex items-center gap-2 mb-6">
                   <button onClick={() => setSelectedCategory(null)} className="inline-flex items-center gap-1.5 px-4 py-1.5 bg-[#f8f6f3] rounded-full font-display text-sm text-[#111111]">
-                    {categories.find((c) => c.id === selectedCategory)?.name}
+                    {categories.find((c) => c.slug === selectedCategory)?.name}
                     <X size={14} />
                   </button>
                 </div>

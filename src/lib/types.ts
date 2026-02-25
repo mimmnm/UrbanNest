@@ -5,14 +5,16 @@ export interface Product {
   description: string;
   price: number;
   originalPrice?: number;
+  image?: string;
   images: string[];
   category: string;
-  tags: string[];
+  tags?: string[];
   rating: number;
   reviews: number;
   inStock: boolean;
-  featured: boolean;
-  isNew: boolean;
+  featured?: boolean;
+  isNew?: boolean;
+  isBestSeller?: boolean;
   colors?: string[];
   sizes?: string[];
 }

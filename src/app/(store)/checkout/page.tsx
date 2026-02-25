@@ -1,21 +1,37 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { motion } from "framer-motion";
 import Image from "next/image";
 import Link from "next/link";
-import { Lock, CreditCard, ChevronRight, Check } from "lucide-react";
+import { Lock, ChevronRight, Check, Loader2, AlertCircle } from "lucide-react";
 import { useCart } from "@/lib/cart-context";
 import { formatPrice } from "@/lib/utils";
+
+function getProductImage(product: { image?: string; images?: string[] }): string {
+  if (product.images && product.images.length > 0) return product.images[0];
+  if (product.image) return product.image;
+  return "/placeholder.png";
+}
 
 export default function CheckoutPage() {
   const { items, totalPrice, clearCart } = useCart();
   const [step, setStep] = useState(1);
   const [orderPlaced, setOrderPlaced] = useState(false);
-  const orderId = useMemo(
-    () => `ORD-${crypto.randomUUID().slice(0, 8).toUpperCase()}`,
-    []
-  );
+  const [confirmedOrderId, setConfirmedOrderId] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState("");
+
+  // Form state
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [address, setAddress] = useState("");
+  const [city, setCity] = useState("");
+  const [district, setDistrict] = useState("");
+  const [zip, setZip] = useState("");
+  const [paymentMethod, setPaymentMethod] = useState<"cod" | "card">("cod");
 
   if (orderPlaced) {
     return (
@@ -39,7 +55,9 @@ export default function CheckoutPage() {
           <p className="text-[#a1a1aa] text-sm mb-2">
             Thank you for your purchase. Your order has been placed successfully.
           </p>
-          <p className="font-display text-xs text-[#a1a1aa] mb-8">{orderId}</p>
+          <p className="font-display text-sm font-medium text-[#66a80f] mb-8">
+            {confirmedOrderId}
+          </p>
           <Link
             href="/"
             className="inline-flex items-center gap-2 px-8 py-3.5 bg-[#111111] text-white rounded-full font-display text-sm font-medium hover:bg-[#66a80f] transition-colors duration-300"
@@ -69,12 +87,77 @@ export default function CheckoutPage() {
     );
   }
 
-  const shipping = totalPrice > 7500 ? 0 : 150;
-  const tax = Math.round(totalPrice * 0.05);
-  const total = totalPrice + shipping + tax;
+  const shipping = totalPrice >= 7500 ? 0 : 120;
+  const total = totalPrice + shipping;
 
   const inputClass =
-    "w-full px-4 py-3.5 bg-[#ffffff] border border-[#d4e8c2] rounded-xl text-sm focus:outline-none focus:border-[#66a80f] transition-colors placeholder:text-[#a1a1aa]";
+    "w-full px-4 py-3.5 bg-[#ffffff] border border-[#d4e8c2] rounded-xl text-sm font-display focus:outline-none focus:border-[#66a80f] transition-colors placeholder:text-[#a1a1aa]";
+
+  const validateStep1 = () => {
+    if (!firstName.trim() || !lastName.trim()) {
+      setError("Please enter your full name");
+      return false;
+    }
+    if (!email.trim() || !email.includes("@")) {
+      setError("Please enter a valid email address");
+      return false;
+    }
+    if (!address.trim()) {
+      setError("Please enter your shipping address");
+      return false;
+    }
+    if (!city.trim()) {
+      setError("Please enter your city");
+      return false;
+    }
+    setError("");
+    return true;
+  };
+
+  const handlePlaceOrder = async () => {
+    setError("");
+    setSubmitting(true);
+
+    try {
+      const orderItems = items.map((item) => ({
+        productId: item.product.id,
+        quantity: item.quantity,
+        selectedColor: item.selectedColor,
+        selectedSize: item.selectedSize,
+      }));
+
+      const fullName = `${firstName.trim()} ${lastName.trim()}`;
+      const shippingAddress = `${address.trim()}, ${city.trim()}, ${district.trim()} ${zip.trim()}`.replace(/,\s*,/g, ",").trim();
+
+      const res = await fetch("/api/orders", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          customer: fullName,
+          email: email.trim().toLowerCase(),
+          phone: phone.trim(),
+          shippingAddress,
+          items: orderItems,
+          paymentMethod,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        setError(data.error || "Failed to place order. Please try again.");
+        return;
+      }
+
+      setConfirmedOrderId(data.order?.orderId || "");
+      clearCart();
+      setOrderPlaced(true);
+    } catch {
+      setError("Something went wrong. Please try again.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   return (
     <div className="min-h-screen">
@@ -94,6 +177,13 @@ export default function CheckoutPage() {
           </span>
         </div>
 
+        {error && (
+          <div className="flex items-center gap-2 p-4 mb-6 bg-red-50 border border-red-200 rounded-xl text-red-700 text-sm">
+            <AlertCircle size={16} />
+            {error}
+          </div>
+        )}
+
         <div className="grid lg:grid-cols-2 gap-14">
           {/* Form */}
           <div>
@@ -109,59 +199,107 @@ export default function CheckoutPage() {
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <label className="block font-display text-xs text-[#a1a1aa] mb-1.5">
-                        First Name
+                        First Name *
                       </label>
-                      <input type="text" className={inputClass} placeholder="John" />
+                      <input
+                        type="text"
+                        className={inputClass}
+                        placeholder="John"
+                        value={firstName}
+                        onChange={(e) => setFirstName(e.target.value)}
+                      />
                     </div>
                     <div>
                       <label className="block font-display text-xs text-[#a1a1aa] mb-1.5">
-                        Last Name
+                        Last Name *
                       </label>
-                      <input type="text" className={inputClass} placeholder="Doe" />
+                      <input
+                        type="text"
+                        className={inputClass}
+                        placeholder="Doe"
+                        value={lastName}
+                        onChange={(e) => setLastName(e.target.value)}
+                      />
                     </div>
                   </div>
                   <div>
                     <label className="block font-display text-xs text-[#a1a1aa] mb-1.5">
-                      Email
+                      Email *
                     </label>
                     <input
                       type="email"
                       className={inputClass}
                       placeholder="john@example.com"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
                     />
                   </div>
                   <div>
                     <label className="block font-display text-xs text-[#a1a1aa] mb-1.5">
-                      Address
+                      Phone
+                    </label>
+                    <input
+                      type="tel"
+                      className={inputClass}
+                      placeholder="+880 1XXX-XXXXXX"
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <label className="block font-display text-xs text-[#a1a1aa] mb-1.5">
+                      Address *
                     </label>
                     <input
                       type="text"
                       className={inputClass}
                       placeholder="House 12, Road 5, Gulshan"
+                      value={address}
+                      onChange={(e) => setAddress(e.target.value)}
                     />
                   </div>
                   <div className="grid grid-cols-3 gap-4">
                     <div>
                       <label className="block font-display text-xs text-[#a1a1aa] mb-1.5">
-                        City
+                        City *
                       </label>
-                      <input type="text" className={inputClass} placeholder="Dhaka" />
+                      <input
+                        type="text"
+                        className={inputClass}
+                        placeholder="Dhaka"
+                        value={city}
+                        onChange={(e) => setCity(e.target.value)}
+                      />
                     </div>
                     <div>
                       <label className="block font-display text-xs text-[#a1a1aa] mb-1.5">
                         District
                       </label>
-                      <input type="text" className={inputClass} placeholder="Dhaka" />
+                      <input
+                        type="text"
+                        className={inputClass}
+                        placeholder="Dhaka"
+                        value={district}
+                        onChange={(e) => setDistrict(e.target.value)}
+                      />
                     </div>
                     <div>
                       <label className="block font-display text-xs text-[#a1a1aa] mb-1.5">
                         ZIP
                       </label>
-                      <input type="text" className={inputClass} placeholder="1212" />
+                      <input
+                        type="text"
+                        className={inputClass}
+                        placeholder="1212"
+                        value={zip}
+                        onChange={(e) => setZip(e.target.value)}
+                      />
                     </div>
                   </div>
                   <button
-                    onClick={() => setStep(2)}
+                    onClick={() => {
+                      if (validateStep1()) setStep(2);
+                    }}
                     className="w-full py-4 bg-[#111111] text-white rounded-xl font-display text-sm font-medium hover:bg-[#66a80f] transition-colors duration-300 mt-6"
                   >
                     Continue to Payment
@@ -176,65 +314,93 @@ export default function CheckoutPage() {
                 animate={{ opacity: 1, x: 0 }}
               >
                 <button
-                  onClick={() => setStep(1)}
+                  onClick={() => { setStep(1); setError(""); }}
                   className="font-display text-sm text-[#a1a1aa] hover:text-[#66a80f] mb-7 transition-colors"
                 >
                   ← Back to Information
                 </button>
                 <h2 className="font-display text-xl font-semibold text-[#111111] mb-7">
-                  Payment Details
+                  Payment Method
                 </h2>
                 <div className="space-y-4">
-                  <div className="flex items-center gap-2 p-4 bg-blue-50 rounded-xl mb-2">
-                    <Lock size={14} className="text-blue-500" />
-                    <span className="text-xs text-blue-700">
-                      Your payment information is encrypted and secure
-                    </span>
-                  </div>
-                  <div>
-                    <label className="block font-display text-xs text-[#a1a1aa] mb-1.5">
-                      Card Number
-                    </label>
-                    <div className="relative">
+                  {/* Payment method selection */}
+                  <div className="space-y-3">
+                    <label
+                      className={`flex items-center gap-4 p-4 border rounded-xl cursor-pointer transition-all ${
+                        paymentMethod === "cod"
+                          ? "border-[#66a80f] bg-[#66a80f]/5"
+                          : "border-[#d4e8c2] hover:border-[#66a80f]/50"
+                      }`}
+                    >
                       <input
-                        type="text"
-                        className={inputClass}
-                        placeholder="1234 5678 9012 3456"
+                        type="radio"
+                        name="payment"
+                        checked={paymentMethod === "cod"}
+                        onChange={() => setPaymentMethod("cod")}
+                        className="accent-[#66a80f]"
                       />
-                      <CreditCard
-                        size={18}
-                        className="absolute right-4 top-1/2 -translate-y-1/2 text-[#a1a1aa]"
-                      />
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block font-display text-xs text-[#a1a1aa] mb-1.5">
-                        Expiry Date
-                      </label>
-                      <input type="text" className={inputClass} placeholder="MM/YY" />
-                    </div>
-                    <div>
-                      <label className="block font-display text-xs text-[#a1a1aa] mb-1.5">
-                        CVC
-                      </label>
-                      <input type="text" className={inputClass} placeholder="123" />
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block font-display text-xs text-[#a1a1aa] mb-1.5">
-                      Name on Card
+                      <div>
+                        <p className="font-display text-sm font-medium text-[#111111]">Cash on Delivery</p>
+                        <p className="text-xs text-[#a1a1aa]">Pay when you receive your order</p>
+                      </div>
                     </label>
-                    <input type="text" className={inputClass} placeholder="John Doe" />
+                    <label
+                      className={`flex items-center gap-4 p-4 border rounded-xl cursor-pointer transition-all ${
+                        paymentMethod === "card"
+                          ? "border-[#66a80f] bg-[#66a80f]/5"
+                          : "border-[#d4e8c2] hover:border-[#66a80f]/50"
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        name="payment"
+                        checked={paymentMethod === "card"}
+                        onChange={() => setPaymentMethod("card")}
+                        className="accent-[#66a80f]"
+                      />
+                      <div>
+                        <p className="font-display text-sm font-medium text-[#111111]">Online Payment</p>
+                        <p className="text-xs text-[#a1a1aa]">bKash, Nagad, or Card</p>
+                      </div>
+                    </label>
                   </div>
+
+                  {paymentMethod === "card" && (
+                    <div className="mt-4 p-4 bg-blue-50/70 rounded-xl">
+                      <div className="flex items-center gap-2 mb-3">
+                        <Lock size={14} className="text-blue-500" />
+                        <span className="text-xs text-blue-700 font-display">
+                          Payment gateway integration coming soon. Use Cash on Delivery for now.
+                        </span>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Shipping summary */}
+                  <div className="p-4 bg-[#f8f6f3] rounded-xl mt-4">
+                    <p className="text-xs font-display text-[#a1a1aa] uppercase tracking-wider mb-2">Shipping to</p>
+                    <p className="text-sm font-display text-[#111111]">
+                      {firstName} {lastName}
+                    </p>
+                    <p className="text-xs text-[#a1a1aa]">
+                      {address}, {city} {district} {zip}
+                    </p>
+                    <p className="text-xs text-[#a1a1aa]">{email}</p>
+                  </div>
+
                   <button
-                    onClick={() => {
-                      clearCart();
-                      setOrderPlaced(true);
-                    }}
-                    className="w-full py-4 bg-[#111111] text-white rounded-xl font-display text-sm font-medium hover:bg-[#66a80f] transition-colors duration-300 mt-6"
+                    onClick={handlePlaceOrder}
+                    disabled={submitting || paymentMethod === "card"}
+                    className="w-full py-4 bg-[#111111] text-white rounded-xl font-display text-sm font-medium hover:bg-[#66a80f] transition-colors duration-300 mt-6 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                   >
-                    Place Order — {formatPrice(total)}
+                    {submitting ? (
+                      <>
+                        <Loader2 size={16} className="animate-spin" />
+                        Placing Order...
+                      </>
+                    ) : (
+                      `Place Order — ${formatPrice(total)}`
+                    )}
                   </button>
                 </div>
               </motion.div>
@@ -243,7 +409,7 @@ export default function CheckoutPage() {
 
           {/* Order Summary */}
           <div>
-            <div className="bg-white rounded-2xl border border-[#d4e8c2]/40 p-7">
+            <div className="bg-white rounded-2xl border border-[#d4e8c2]/40 p-7 sticky top-28">
               <h3 className="font-display text-sm font-semibold text-[#111111] mb-6">
                 Order Summary
               </h3>
@@ -252,7 +418,7 @@ export default function CheckoutPage() {
                   <div key={item.product.id} className="flex gap-3">
                     <div className="relative w-16 h-16 rounded-xl overflow-hidden bg-[#f8f6f3] flex-shrink-0">
                       <Image
-                        src={item.product.images[0]}
+                        src={getProductImage(item.product)}
                         alt={item.product.name}
                         fill
                         className="object-cover"
@@ -285,10 +451,6 @@ export default function CheckoutPage() {
                   <span className="font-display">
                     {shipping === 0 ? "Free" : formatPrice(shipping)}
                   </span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-[#a1a1aa]">Tax</span>
-                  <span className="font-display">{formatPrice(tax)}</span>
                 </div>
                 <div className="flex justify-between font-semibold pt-3 border-t border-[#d4e8c2]/40">
                   <span className="font-display">Total</span>

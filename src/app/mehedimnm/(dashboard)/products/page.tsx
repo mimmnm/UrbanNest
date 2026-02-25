@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
 import {
@@ -8,52 +8,239 @@ import {
   Search,
   Edit,
   Trash2,
-  Eye,
   MoreVertical,
   X,
   Star,
+  Upload,
+  Loader2,
+  ImageIcon,
 } from "lucide-react";
-import { products as allProducts, Product } from "@/lib/data";
 import { formatPrice } from "@/lib/utils";
 
+interface ProductItem {
+  id: string;
+  _id?: string;
+  name: string;
+  slug: string;
+  description: string;
+  price: number;
+  originalPrice: number;
+  images: string[];
+  category: string;
+  tags: string[];
+  rating: number;
+  reviews: number;
+  inStock: boolean;
+  featured: boolean;
+  isNew: boolean;
+  isBestSeller: boolean;
+  colors: string[];
+  sizes: string[];
+  sku: string;
+  stock: number;
+}
+
+interface CategoryItem {
+  id: string;
+  name: string;
+  slug: string;
+}
+
+const emptyForm = {
+  name: "",
+  description: "",
+  price: "",
+  originalPrice: "",
+  category: "",
+  tags: "",
+  inStock: true,
+  featured: false,
+  isNew: false,
+  isBestSeller: false,
+  colors: "",
+  sizes: "",
+  sku: "",
+  stock: "0",
+};
+
 export default function AdminProductsPage() {
-  const [productsList, setProductsList] = useState(allProducts);
+  const [products, setProducts] = useState<ProductItem[]>([]);
+  const [categories, setCategories] = useState<CategoryItem[]>([]);
   const [search, setSearch] = useState("");
-  const [showAddModal, setShowAddModal] = useState(false);
-  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [showModal, setShowModal] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [activeMenu, setActiveMenu] = useState<string | null>(null);
+  const [form, setForm] = useState(emptyForm);
+  const [images, setImages] = useState<string[]>([]);
+  const [uploading, setUploading] = useState(false);
+  const [saveError, setSaveError] = useState("");
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const filteredProducts = productsList.filter(
-    (p) =>
-      p.name.toLowerCase().includes(search.toLowerCase()) ||
-      p.category.toLowerCase().includes(search.toLowerCase())
-  );
+  const fetchProducts = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/admin/products?search=${encodeURIComponent(search)}`);
+      const data = await res.json();
+      setProducts(data.products || []);
+    } catch (err) {
+      console.error("Failed to fetch products:", err);
+    } finally {
+      setLoading(false);
+    }
+  }, [search]);
 
-  const handleDelete = (id: string) => {
-    setProductsList((prev) => prev.filter((p) => p.id !== id));
+  const fetchCategories = useCallback(async () => {
+    try {
+      const res = await fetch("/api/admin/categories");
+      const data = await res.json();
+      setCategories(data.categories || []);
+    } catch (err) {
+      console.error("Failed to fetch categories:", err);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchCategories();
+  }, [fetchCategories]);
+
+  // Debounced search
+  useEffect(() => {
+    const timer = setTimeout(() => fetchProducts(), 300);
+    return () => clearTimeout(timer);
+  }, [search, fetchProducts]);
+
+  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    setUploading(true);
+    const formData = new FormData();
+    Array.from(files).forEach((f) => formData.append("files", f));
+
+    try {
+      const res = await fetch("/api/admin/upload", { method: "POST", body: formData });
+      const data = await res.json();
+      if (data.urls) {
+        setImages((prev) => [...prev, ...data.urls]);
+      }
+    } catch (err) {
+      console.error("Upload failed:", err);
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
+
+  const removeImage = (index: number) => {
+    setImages((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const openAdd = () => {
+    setEditingId(null);
+    setForm(emptyForm);
+    setImages([]);
+    setShowModal(true);
+  };
+
+  const openEdit = (product: ProductItem) => {
+    setEditingId(product.id || product._id || "");
+    setForm({
+      name: product.name,
+      description: product.description,
+      price: product.price.toString(),
+      originalPrice: product.originalPrice.toString(),
+      category: product.category,
+      tags: (product.tags || []).join(", "),
+      inStock: product.inStock,
+      featured: product.featured,
+      isNew: product.isNew,
+      isBestSeller: product.isBestSeller,
+      colors: (product.colors || []).join(", "),
+      sizes: (product.sizes || []).join(", "),
+      sku: product.sku || "",
+      stock: (product.stock || 0).toString(),
+    });
+    setImages(product.images || []);
+    setShowModal(true);
     setActiveMenu(null);
   };
 
+  const handleSave = async () => {
+    if (!form.name || !form.price) return;
+    setSaving(true);
+    setSaveError("");
+
+    const body = {
+      name: form.name,
+      description: form.description,
+      price: Number(form.price),
+      originalPrice: Number(form.originalPrice) || Number(form.price),
+      images,
+      category: form.category,
+      tags: form.tags ? form.tags.split(",").map((t) => t.trim()).filter(Boolean) : [],
+      inStock: form.inStock,
+      featured: form.featured,
+      isNew: form.isNew,
+      isBestSeller: form.isBestSeller,
+      colors: form.colors ? form.colors.split(",").map((c) => c.trim()).filter(Boolean) : [],
+      sizes: form.sizes ? form.sizes.split(",").map((s) => s.trim()).filter(Boolean) : [],
+      sku: form.sku,
+      stock: Number(form.stock) || 0,
+    };
+
+    try {
+      const url = editingId ? `/api/admin/products/${editingId}` : "/api/admin/products";
+      const method = editingId ? "PUT" : "POST";
+      const res = await fetch(url, { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+
+      if (res.ok) {
+        setShowModal(false);
+        setEditingId(null);
+        fetchProducts();
+      } else {
+        const errData = await res.json().catch(() => ({}));
+        setSaveError(errData.error || "Failed to save product");
+      }
+    } catch (err) {
+      console.error("Save failed:", err);
+      setSaveError("Network error. Please try again.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm("Are you sure you want to delete this product?")) return;
+    setActiveMenu(null);
+
+    try {
+      const res = await fetch(`/api/admin/products/${id}`, { method: "DELETE" });
+      if (res.ok) {
+        setProducts((prev) => prev.filter((p) => (p.id || p._id) !== id));
+      }
+    } catch (err) {
+      console.error("Delete failed:", err);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="w-6 h-6 animate-spin text-stone-400" />
+      </div>
+    );
+  }
+
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="space-y-6"
-    >
+    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-2xl font-light text-stone-900">Products</h2>
-          <p className="text-sm text-stone-500 mt-1">
-            Manage your product catalog ({productsList.length} products)
-          </p>
+          <p className="text-sm text-stone-500 mt-1">Manage your product catalog ({products.length} products)</p>
         </div>
-        <motion.button
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.98 }}
-          onClick={() => setShowAddModal(true)}
-          className="flex items-center gap-2 px-5 py-2.5 bg-stone-900 text-white rounded-xl text-sm font-medium hover:bg-stone-800 transition-colors"
-        >
+        <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={openAdd} className="flex items-center gap-2 px-5 py-2.5 bg-stone-900 text-white rounded-xl text-sm font-medium hover:bg-stone-800 transition-colors">
           <Plus size={16} />
           Add Product
         </motion.button>
@@ -61,17 +248,8 @@ export default function AdminProductsPage() {
 
       {/* Search */}
       <div className="relative">
-        <Search
-          size={18}
-          className="absolute left-4 top-1/2 -translate-y-1/2 text-stone-400"
-        />
-        <input
-          type="text"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search products..."
-          className="w-full pl-12 pr-4 py-3 bg-white border border-stone-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-stone-300 transition-all"
-        />
+        <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-stone-400" />
+        <input type="text" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search products..." className="w-full pl-12 pr-4 py-3 bg-white border border-stone-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-stone-300 transition-all" />
       </div>
 
       {/* Products Table */}
@@ -80,311 +258,201 @@ export default function AdminProductsPage() {
           <table className="w-full">
             <thead>
               <tr className="border-b border-stone-100">
-                <th className="text-left text-xs font-medium text-stone-500 px-6 py-3">
-                  Product
-                </th>
-                <th className="text-left text-xs font-medium text-stone-500 px-6 py-3">
-                  Category
-                </th>
-                <th className="text-left text-xs font-medium text-stone-500 px-6 py-3">
-                  Price
-                </th>
-                <th className="text-left text-xs font-medium text-stone-500 px-6 py-3">
-                  Rating
-                </th>
-                <th className="text-left text-xs font-medium text-stone-500 px-6 py-3">
-                  Status
-                </th>
-                <th className="text-right text-xs font-medium text-stone-500 px-6 py-3">
-                  Actions
-                </th>
+                <th className="text-left text-xs font-medium text-stone-500 px-6 py-3">Product</th>
+                <th className="text-left text-xs font-medium text-stone-500 px-6 py-3">Category</th>
+                <th className="text-left text-xs font-medium text-stone-500 px-6 py-3">Price</th>
+                <th className="text-left text-xs font-medium text-stone-500 px-6 py-3">Stock</th>
+                <th className="text-left text-xs font-medium text-stone-500 px-6 py-3">Rating</th>
+                <th className="text-left text-xs font-medium text-stone-500 px-6 py-3">Status</th>
+                <th className="text-right text-xs font-medium text-stone-500 px-6 py-3">Actions</th>
               </tr>
             </thead>
             <tbody>
-              {filteredProducts.map((product) => (
-                <motion.tr
-                  key={product.id}
-                  layout
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  className="border-b border-stone-50 hover:bg-stone-50/50 transition-colors"
-                >
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-3">
-                      <div className="relative w-12 h-12 rounded-lg overflow-hidden bg-stone-100 flex-shrink-0">
-                        <Image
-                          src={product.image}
-                          alt={product.name}
-                          fill
-                          className="object-cover"
-                        />
+              {products.map((product) => {
+                const pid = product.id || product._id || "";
+                return (
+                  <motion.tr key={pid} layout initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="border-b border-stone-50 hover:bg-stone-50/50 transition-colors">
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-3">
+                        <div className="relative w-12 h-12 rounded-lg overflow-hidden bg-stone-100 flex-shrink-0">
+                          {product.images?.[0] ? (
+                            <Image src={product.images[0]} alt={product.name} fill className="object-cover" sizes="48px" />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center"><ImageIcon size={16} className="text-stone-300" /></div>
+                          )}
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-stone-900">{product.name}</p>
+                          <p className="text-xs text-stone-400">SKU: {product.sku || "—"}</p>
+                        </div>
                       </div>
-                      <div>
-                        <p className="text-sm font-medium text-stone-900">
-                          {product.name}
-                        </p>
-                        <p className="text-xs text-stone-400">
-                          ID: {product.id}
-                        </p>
+                    </td>
+                    <td className="px-6 py-4"><span className="text-sm text-stone-600 capitalize">{product.category || "—"}</span></td>
+                    <td className="px-6 py-4">
+                      <p className="text-sm font-medium text-stone-900">{formatPrice(product.price)}</p>
+                      {product.originalPrice > product.price && <p className="text-xs text-stone-400 line-through">{formatPrice(product.originalPrice)}</p>}
+                    </td>
+                    <td className="px-6 py-4"><span className="text-sm text-stone-600">{product.stock}</span></td>
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-1">
+                        <Star size={12} className="fill-amber-400 text-amber-400" />
+                        <span className="text-sm text-stone-600">{product.rating}</span>
                       </div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4">
-                    <span className="text-sm text-stone-600">
-                      {product.category}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4">
-                    <div>
-                      <p className="text-sm font-medium text-stone-900">
-                        {formatPrice(product.price)}
-                      </p>
-                      {product.originalPrice && (
-                        <p className="text-xs text-stone-400 line-through">
-                          {formatPrice(product.originalPrice)}
-                        </p>
-                      )}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-1">
-                      <Star
-                        size={12}
-                        className="fill-amber-400 text-amber-400"
-                      />
-                      <span className="text-sm text-stone-600">
-                        {product.rating}
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${product.inStock ? "bg-emerald-100 text-emerald-700" : "bg-red-100 text-red-700"}`}>
+                        {product.inStock ? "In Stock" : "Out of Stock"}
                       </span>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4">
-                    <span
-                      className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${
-                        product.inStock
-                          ? "bg-emerald-100 text-emerald-700"
-                          : "bg-red-100 text-red-700"
-                      }`}
-                    >
-                      {product.inStock ? "In Stock" : "Out of Stock"}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="flex items-center justify-end gap-1 relative">
-                      <button
-                        onClick={() =>
-                          setActiveMenu(
-                            activeMenu === product.id ? null : product.id
-                          )
-                        }
-                        className="p-2 text-stone-400 hover:text-stone-900 rounded-lg hover:bg-stone-100 transition-colors"
-                      >
-                        <MoreVertical size={16} />
-                      </button>
-
-                      <AnimatePresence>
-                        {activeMenu === product.id && (
-                          <motion.div
-                            initial={{ opacity: 0, scale: 0.95, y: -5 }}
-                            animate={{ opacity: 1, scale: 1, y: 0 }}
-                            exit={{ opacity: 0, scale: 0.95, y: -5 }}
-                            className="absolute right-0 top-10 w-40 bg-white rounded-xl border border-stone-200 shadow-lg z-10 py-1"
-                          >
-                            <button
-                              onClick={() => {
-                                setEditingProduct(product);
-                                setShowAddModal(true);
-                                setActiveMenu(null);
-                              }}
-                              className="w-full flex items-center gap-2 px-4 py-2 text-sm text-stone-600 hover:bg-stone-50 transition-colors"
-                            >
-                              <Edit size={14} />
-                              Edit
-                            </button>
-                            <button className="w-full flex items-center gap-2 px-4 py-2 text-sm text-stone-600 hover:bg-stone-50 transition-colors">
-                              <Eye size={14} />
-                              View
-                            </button>
-                            <button
-                              onClick={() => handleDelete(product.id)}
-                              className="w-full flex items-center gap-2 px-4 py-2 text-sm text-red-500 hover:bg-red-50 transition-colors"
-                            >
-                              <Trash2 size={14} />
-                              Delete
-                            </button>
-                          </motion.div>
-                        )}
-                      </AnimatePresence>
-                    </div>
-                  </td>
-                </motion.tr>
-              ))}
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex items-center justify-end gap-1 relative">
+                        <button onClick={() => setActiveMenu(activeMenu === pid ? null : pid)} className="p-2 text-stone-400 hover:text-stone-900 rounded-lg hover:bg-stone-100 transition-colors">
+                          <MoreVertical size={16} />
+                        </button>
+                        <AnimatePresence>
+                          {activeMenu === pid && (
+                            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="absolute right-0 top-10 w-40 bg-white rounded-xl border border-stone-200 shadow-lg z-10 py-1">
+                              <button onClick={() => openEdit(product)} className="w-full flex items-center gap-2 px-4 py-2 text-sm text-stone-600 hover:bg-stone-50 transition-colors">
+                                <Edit size={14} /> Edit
+                              </button>
+                              <button onClick={() => handleDelete(pid)} className="w-full flex items-center gap-2 px-4 py-2 text-sm text-red-500 hover:bg-red-50 transition-colors">
+                                <Trash2 size={14} /> Delete
+                              </button>
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+                      </div>
+                    </td>
+                  </motion.tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
-
-        {filteredProducts.length === 0 && (
+        {products.length === 0 && (
           <div className="text-center py-12">
-            <p className="text-sm text-stone-400">No products found</p>
+            <ImageIcon size={40} className="mx-auto text-stone-200 mb-3" />
+            <p className="text-sm text-stone-400">No products yet</p>
+            <button onClick={openAdd} className="mt-3 text-sm text-stone-900 underline">Add your first product</button>
           </div>
         )}
       </div>
 
       {/* Add/Edit Modal */}
       <AnimatePresence>
-        {showAddModal && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center p-4"
-          >
-            <div
-              className="absolute inset-0 bg-stone-900/30 backdrop-blur-sm"
-              onClick={() => {
-                setShowAddModal(false);
-                setEditingProduct(null);
-              }}
-            />
-            <motion.div
-              initial={{ scale: 0.95, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.95, opacity: 0 }}
-              className="relative bg-white rounded-2xl shadow-xl w-full max-w-lg max-h-[85vh] overflow-y-auto"
-            >
+        {showModal && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div className="absolute inset-0 bg-stone-900/30 backdrop-blur-sm" onClick={() => { setShowModal(false); setEditingId(null); }} />
+            <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }} className="relative bg-white rounded-2xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
               <div className="flex items-center justify-between px-6 py-4 border-b border-stone-100 sticky top-0 bg-white rounded-t-2xl z-10">
-                <h3 className="text-lg font-medium text-stone-900">
-                  {editingProduct ? "Edit Product" : "Add New Product"}
-                </h3>
-                <button
-                  onClick={() => {
-                    setShowAddModal(false);
-                    setEditingProduct(null);
-                  }}
-                  className="p-2 text-stone-400 hover:text-stone-900 transition-colors"
-                >
-                  <X size={18} />
-                </button>
+                <h3 className="text-lg font-medium text-stone-900">{editingId ? "Edit Product" : "Add New Product"}</h3>
+                <button onClick={() => { setShowModal(false); setEditingId(null); }} className="p-2 text-stone-400 hover:text-stone-900 transition-colors"><X size={18} /></button>
               </div>
               <div className="p-6 space-y-4">
+                {/* Image Upload */}
                 <div>
-                  <label className="block text-xs text-stone-500 mb-1.5">
-                    Product Name
-                  </label>
-                  <input
-                    type="text"
-                    defaultValue={editingProduct?.name || ""}
-                    className="w-full px-4 py-3 bg-stone-50 border border-stone-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-stone-300"
-                    placeholder="Product name"
-                  />
+                  <label className="block text-xs text-stone-500 mb-1.5">Product Images</label>
+                  <div className="flex flex-wrap gap-3 mb-3">
+                    {images.map((img, i) => (
+                      <div key={i} className="relative w-20 h-20 rounded-lg overflow-hidden bg-stone-100 group">
+                        <Image src={img} alt="" fill className="object-cover" sizes="80px" />
+                        <button onClick={() => removeImage(i)} className="absolute top-1 right-1 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"><X size={10} /></button>
+                      </div>
+                    ))}
+                    <button onClick={() => fileInputRef.current?.click()} className="w-20 h-20 rounded-lg border-2 border-dashed border-stone-200 flex flex-col items-center justify-center text-stone-400 hover:border-stone-400 hover:text-stone-600 transition-colors">
+                      {uploading ? <Loader2 size={16} className="animate-spin" /> : <><Upload size={16} /><span className="text-[10px] mt-1">Upload</span></>}
+                    </button>
+                  </div>
+                  <input ref={fileInputRef} type="file" accept="image/*" multiple onChange={handleUpload} className="hidden" />
+                  <p className="text-[11px] text-stone-400">Max 5MB per image. JPG, PNG, WebP supported.</p>
                 </div>
+
                 <div>
-                  <label className="block text-xs text-stone-500 mb-1.5">
-                    Description
-                  </label>
-                  <textarea
-                    rows={3}
-                    defaultValue={editingProduct?.description || ""}
-                    className="w-full px-4 py-3 bg-stone-50 border border-stone-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-stone-300 resize-none"
-                    placeholder="Product description"
-                  />
+                  <label className="block text-xs text-stone-500 mb-1.5">Product Name *</label>
+                  <input type="text" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="w-full px-4 py-3 bg-stone-50 border border-stone-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-stone-300" placeholder="Product name" />
                 </div>
+
+                <div>
+                  <label className="block text-xs text-stone-500 mb-1.5">Description</label>
+                  <textarea rows={3} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} className="w-full px-4 py-3 bg-stone-50 border border-stone-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-stone-300 resize-none" placeholder="Product description" />
+                </div>
+
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-xs text-stone-500 mb-1.5">
-                      Price
-                    </label>
-                    <input
-                      type="number"
-                      defaultValue={editingProduct?.price || ""}
-                      className="w-full px-4 py-3 bg-stone-50 border border-stone-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-stone-300"
-                      placeholder="0.00"
-                    />
+                    <label className="block text-xs text-stone-500 mb-1.5">Price (৳) *</label>
+                    <input type="number" value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} className="w-full px-4 py-3 bg-stone-50 border border-stone-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-stone-300" placeholder="0" />
                   </div>
                   <div>
-                    <label className="block text-xs text-stone-500 mb-1.5">
-                      Original Price
-                    </label>
-                    <input
-                      type="number"
-                      defaultValue={editingProduct?.originalPrice || ""}
-                      className="w-full px-4 py-3 bg-stone-50 border border-stone-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-stone-300"
-                      placeholder="0.00"
-                    />
+                    <label className="block text-xs text-stone-500 mb-1.5">Original Price (৳)</label>
+                    <input type="number" value={form.originalPrice} onChange={(e) => setForm({ ...form, originalPrice: e.target.value })} className="w-full px-4 py-3 bg-stone-50 border border-stone-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-stone-300" placeholder="0" />
                   </div>
                 </div>
-                <div>
-                  <label className="block text-xs text-stone-500 mb-1.5">
-                    Category
-                  </label>
-                  <select
-                    defaultValue={editingProduct?.category || ""}
-                    className="w-full px-4 py-3 bg-stone-50 border border-stone-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-stone-300"
-                  >
-                    <option value="">Select category</option>
-                    <option value="Living Room">Living Room</option>
-                    <option value="Bedroom">Bedroom</option>
-                    <option value="Kitchen">Kitchen</option>
-                    <option value="Office">Office</option>
-                    <option value="Lighting">Lighting</option>
-                    <option value="Decor">Decor</option>
-                  </select>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs text-stone-500 mb-1.5">Category</label>
+                    <select value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} className="w-full px-4 py-3 bg-stone-50 border border-stone-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-stone-300">
+                      <option value="">Select category</option>
+                      {categories.map((cat) => (
+                        <option key={cat.id} value={cat.slug}>{cat.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs text-stone-500 mb-1.5">SKU</label>
+                    <input type="text" value={form.sku} onChange={(e) => setForm({ ...form, sku: e.target.value })} className="w-full px-4 py-3 bg-stone-50 border border-stone-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-stone-300" placeholder="SKU-001" />
+                  </div>
                 </div>
-                <div>
-                  <label className="block text-xs text-stone-500 mb-1.5">
-                    Image URL
-                  </label>
-                  <input
-                    type="url"
-                    defaultValue={editingProduct?.image || ""}
-                    className="w-full px-4 py-3 bg-stone-50 border border-stone-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-stone-300"
-                    placeholder="https://..."
-                  />
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs text-stone-500 mb-1.5">Stock Quantity</label>
+                    <input type="number" value={form.stock} onChange={(e) => setForm({ ...form, stock: e.target.value })} className="w-full px-4 py-3 bg-stone-50 border border-stone-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-stone-300" placeholder="0" />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-stone-500 mb-1.5">Tags (comma separated)</label>
+                    <input type="text" value={form.tags} onChange={(e) => setForm({ ...form, tags: e.target.value })} className="w-full px-4 py-3 bg-stone-50 border border-stone-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-stone-300" placeholder="beauty, skincare" />
+                  </div>
                 </div>
-                <div className="flex items-center gap-6">
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs text-stone-500 mb-1.5">Colors (comma separated)</label>
+                    <input type="text" value={form.colors} onChange={(e) => setForm({ ...form, colors: e.target.value })} className="w-full px-4 py-3 bg-stone-50 border border-stone-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-stone-300" placeholder="Red, Blue, Black" />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-stone-500 mb-1.5">Sizes (comma separated)</label>
+                    <input type="text" value={form.sizes} onChange={(e) => setForm({ ...form, sizes: e.target.value })} className="w-full px-4 py-3 bg-stone-50 border border-stone-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-stone-300" placeholder="S, M, L, XL" />
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-6 flex-wrap">
                   <label className="flex items-center gap-2 text-sm text-stone-600 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      defaultChecked={editingProduct?.isBestSeller}
-                      className="rounded border-stone-300"
-                    />
+                    <input type="checkbox" checked={form.inStock} onChange={(e) => setForm({ ...form, inStock: e.target.checked })} className="rounded border-stone-300" />
+                    In Stock
+                  </label>
+                  <label className="flex items-center gap-2 text-sm text-stone-600 cursor-pointer">
+                    <input type="checkbox" checked={form.featured} onChange={(e) => setForm({ ...form, featured: e.target.checked })} className="rounded border-stone-300" />
                     Featured
                   </label>
                   <label className="flex items-center gap-2 text-sm text-stone-600 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      defaultChecked={editingProduct?.isNew}
-                      className="rounded border-stone-300"
-                    />
+                    <input type="checkbox" checked={form.isNew} onChange={(e) => setForm({ ...form, isNew: e.target.checked })} className="rounded border-stone-300" />
                     New Arrival
                   </label>
                   <label className="flex items-center gap-2 text-sm text-stone-600 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      defaultChecked={editingProduct?.inStock ?? true}
-                      className="rounded border-stone-300"
-                    />
-                    In Stock
+                    <input type="checkbox" checked={form.isBestSeller} onChange={(e) => setForm({ ...form, isBestSeller: e.target.checked })} className="rounded border-stone-300" />
+                    Best Seller
                   </label>
                 </div>
+
+                {saveError && (
+                  <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-red-700 text-sm">{saveError}</div>
+                )}
                 <div className="flex gap-3 pt-4">
-                  <button
-                    onClick={() => {
-                      setShowAddModal(false);
-                      setEditingProduct(null);
-                    }}
-                    className="flex-1 py-3 border border-stone-200 rounded-xl text-sm text-stone-600 hover:bg-stone-50 transition-colors"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={() => {
-                      setShowAddModal(false);
-                      setEditingProduct(null);
-                    }}
-                    className="flex-1 py-3 bg-stone-900 text-white rounded-xl text-sm font-medium hover:bg-stone-800 transition-colors"
-                  >
-                    {editingProduct ? "Update Product" : "Add Product"}
+                  <button onClick={() => { setShowModal(false); setEditingId(null); setSaveError(""); }} className="flex-1 py-3 border border-stone-200 rounded-xl text-sm text-stone-600 hover:bg-stone-50 transition-colors">Cancel</button>
+                  <button onClick={handleSave} disabled={saving || !form.name || !form.price} className="flex-1 py-3 bg-stone-900 text-white rounded-xl text-sm font-medium hover:bg-stone-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2">
+                    {saving ? <Loader2 size={16} className="animate-spin" /> : null}
+                    {editingId ? "Update Product" : "Add Product"}
                   </button>
                 </div>
               </div>

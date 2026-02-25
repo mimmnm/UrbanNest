@@ -1,10 +1,23 @@
 import { NextResponse } from "next/server";
+import { cookies } from "next/headers";
 import { verifyAdminToken } from "@/lib/admin-token";
 
 export async function GET() {
-  // Return current admin session status (for client-side checks)
-  // Actual verification done server-side in layout
-  return NextResponse.json({ authenticated: true });
+  try {
+    const cookieStore = await cookies();
+    const adminSession = cookieStore.get("admin_session")?.value;
+    const adminId = cookieStore.get("admin_id")?.value;
+
+    if (!adminSession || !adminId) {
+      return NextResponse.json({ authenticated: false });
+    }
+
+    const secret = process.env.AUTH_SECRET || "";
+    const isValid = await verifyAdminToken(adminSession, secret);
+    return NextResponse.json({ authenticated: isValid });
+  } catch {
+    return NextResponse.json({ authenticated: false });
+  }
 }
 
 export async function POST() {

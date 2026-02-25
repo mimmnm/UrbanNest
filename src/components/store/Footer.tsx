@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import {
@@ -20,22 +21,20 @@ const footerLinks = {
   shop: [
     { name: "New Arrivals", href: "/products?filter=new" },
     { name: "Best Sellers", href: "/products?filter=bestseller" },
-    { name: "Skincare", href: "/categories/skincare" },
-    { name: "Makeup", href: "/categories/makeup" },
-    { name: "Fragrances", href: "/categories/fragrances" },
+    { name: "Skincare", href: "/products?category=skincare" },
+    { name: "Makeup", href: "/products?category=makeup" },
+    { name: "Fragrances", href: "/products?category=fragrances" },
   ],
   help: [
     { name: "Contact Us", href: "/contact" },
-    { name: "Track Order", href: "/orders" },
-    { name: "Returns & Exchanges", href: "/returns" },
-    { name: "Shipping Info", href: "/shipping" },
-    { name: "FAQ", href: "/faq" },
+    { name: "My Account", href: "/account" },
+    { name: "Wishlist", href: "/wishlist" },
+    { name: "Cart", href: "/cart" },
   ],
   about: [
     { name: "Our Story", href: "/about" },
-    { name: "Sustainability", href: "/sustainability" },
-    { name: "Careers", href: "/careers" },
-    { name: "Press", href: "/press" },
+    { name: "All Products", href: "/products" },
+    { name: "Categories", href: "/categories" },
   ],
 };
 
@@ -47,6 +46,9 @@ const trustFeatures = [
 ];
 
 export default function Footer() {
+  const [nlEmail, setNlEmail] = useState("");
+  const [nlSubmitted, setNlSubmitted] = useState(false);
+
   return (
     <footer className="mt-auto relative overflow-hidden">
       {/* ── Trust Bar ─────────────────────────── */}
@@ -92,10 +94,16 @@ export default function Footer() {
                 Get 10% off your first order, plus early access to new arrivals and exclusive beauty tips.
               </p>
             </div>
-            <form className="flex w-full max-w-md">
+            <form className="flex w-full max-w-md" onSubmit={(e) => { e.preventDefault(); if (nlEmail.trim()) setNlSubmitted(true); }}>
+              {nlSubmitted ? (
+                <p className="text-[#66a80f] font-display text-sm font-medium py-4">Thank you for subscribing! 🎉</p>
+              ) : (
+                <>
               <input
                 type="email"
                 placeholder="Your email address"
+                value={nlEmail}
+                onChange={(e) => setNlEmail(e.target.value)}
                 className="flex-1 px-6 py-4 bg-white/10 border border-white/10 rounded-l-full text-sm text-white focus:outline-none focus:border-[#66a80f]/60 focus:bg-white/15 transition-all duration-300 placeholder:text-white/30"
               />
               <button
@@ -105,6 +113,8 @@ export default function Footer() {
                 <span className="hidden sm:inline">Subscribe</span>
                 <ArrowRight size={18} className="group-hover:translate-x-0.5 transition-transform" />
               </button>
+                </>
+              )}
             </form>
           </div>
         </div>
@@ -240,13 +250,12 @@ export default function Footer() {
               </p>
               <div className="flex items-center gap-6">
                 {["Privacy Policy", "Terms of Service", "Cookie Settings"].map((item) => (
-                  <Link
+                  <span
                     key={item}
-                    href={`/${item.toLowerCase().replace(/ /g, "-")}`}
-                    className="text-[11px] text-white/50 hover:text-white/80 transition-colors duration-300"
+                    className="text-[11px] text-white/50 hover:text-white/80 transition-colors duration-300 cursor-pointer"
                   >
                     {item}
-                  </Link>
+                  </span>
                 ))}
               </div>
             </div>

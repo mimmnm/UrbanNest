@@ -1,9 +1,29 @@
 "use client";
 
+import { useState } from "react";
 import { motion } from "framer-motion";
-import { Mail, MapPin, Phone, Clock, Send } from "lucide-react";
+import { Mail, MapPin, Phone, Clock, Send, Check, Loader2 } from "lucide-react";
 
 export default function ContactPage() {
+  const [form, setForm] = useState({ firstName: "", lastName: "", email: "", subject: "", message: "" });
+  const [submitted, setSubmitted] = useState(false);
+  const [sending, setSending] = useState(false);
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!form.firstName.trim() || !form.email.trim() || !form.message.trim()) return;
+    setSending(true);
+    // Simulate sending (no backend endpoint)
+    setTimeout(() => {
+      setSending(false);
+      setSubmitted(true);
+    }, 1000);
+  };
+
   const inputClass =
     "w-full px-4 py-3.5 bg-[#ffffff] border border-[#d4e8c2] rounded-xl text-sm focus:outline-none focus:border-[#66a80f] transition-colors placeholder:text-[#a1a1aa]";
 
@@ -96,29 +116,42 @@ export default function ContactPage() {
               <h2 className="font-display text-lg font-semibold text-[#111111] mb-7">
                 Send a Message
               </h2>
-              <form className="space-y-4">
+              {submitted ? (
+                <div className="text-center py-12">
+                  <div className="w-16 h-16 rounded-full bg-emerald-100 flex items-center justify-center mx-auto mb-4">
+                    <Check size={28} className="text-emerald-500" />
+                  </div>
+                  <h3 className="font-display text-lg font-semibold text-[#111111] mb-2">Message Sent!</h3>
+                  <p className="text-sm text-[#a1a1aa]">Thank you for reaching out. We&apos;ll get back to you soon.</p>
+                </div>
+              ) : (
+              <form className="space-y-4" onSubmit={handleSubmit}>
                 <div className="grid sm:grid-cols-2 gap-4">
                   <div>
                     <label className="block font-display text-xs text-[#a1a1aa] mb-1.5">
-                      First Name
+                      First Name *
                     </label>
-                    <input type="text" className={inputClass} placeholder="John" />
+                    <input type="text" name="firstName" value={form.firstName} onChange={handleChange} className={inputClass} placeholder="John" required />
                   </div>
                   <div>
                     <label className="block font-display text-xs text-[#a1a1aa] mb-1.5">
                       Last Name
                     </label>
-                    <input type="text" className={inputClass} placeholder="Doe" />
+                    <input type="text" name="lastName" value={form.lastName} onChange={handleChange} className={inputClass} placeholder="Doe" />
                   </div>
                 </div>
                 <div>
                   <label className="block font-display text-xs text-[#a1a1aa] mb-1.5">
-                    Email
+                    Email *
                   </label>
                   <input
                     type="email"
+                    name="email"
+                    value={form.email}
+                    onChange={handleChange}
                     className={inputClass}
                     placeholder="john@example.com"
+                    required
                   />
                 </div>
                 <div>
@@ -127,28 +160,37 @@ export default function ContactPage() {
                   </label>
                   <input
                     type="text"
+                    name="subject"
+                    value={form.subject}
+                    onChange={handleChange}
                     className={inputClass}
                     placeholder="How can we help?"
                   />
                 </div>
                 <div>
                   <label className="block font-display text-xs text-[#a1a1aa] mb-1.5">
-                    Message
+                    Message *
                   </label>
                   <textarea
                     rows={5}
+                    name="message"
+                    value={form.message}
+                    onChange={handleChange}
                     className={`${inputClass} resize-none`}
                     placeholder="Tell us more..."
+                    required
                   />
                 </div>
                 <button
                   type="submit"
-                  className="inline-flex items-center gap-2 px-8 py-3.5 bg-[#111111] text-white rounded-full font-display text-sm font-medium tracking-wide hover:bg-[#66a80f] transition-colors duration-300"
+                  disabled={sending}
+                  className="inline-flex items-center gap-2 px-8 py-3.5 bg-[#111111] text-white rounded-full font-display text-sm font-medium tracking-wide hover:bg-[#66a80f] transition-colors duration-300 disabled:opacity-50"
                 >
-                  <Send size={16} />
-                  Send Message
+                  {sending ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
+                  {sending ? "Sending..." : "Send Message"}
                 </button>
               </form>
+              )}
             </div>
           </motion.div>
         </div>

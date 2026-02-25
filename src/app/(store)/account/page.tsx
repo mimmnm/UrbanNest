@@ -3,6 +3,7 @@
 import { useSession, signOut } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
+import Image from "next/image";
 import { User, Package, Heart, Settings, LogOut, Mail } from "lucide-react";
 
 export default function AccountPage() {
@@ -57,7 +58,7 @@ export default function AccountPage() {
             <div className="bg-white rounded-2xl border border-[#d4e8c2]/40 p-6 mb-4 text-center">
               <div className="w-20 h-20 mx-auto rounded-full bg-[#e8f5d6] flex items-center justify-center mb-3 overflow-hidden">
                 {user.image ? (
-                  <img src={user.image} alt={user.name || ""} className="w-20 h-20 rounded-full object-cover" />
+                  <Image src={user.image} alt={user.name || ""} width={80} height={80} className="w-20 h-20 rounded-full object-cover" />
                 ) : (
                   <span className="font-display text-2xl font-bold text-[#66a80f]">
                     {user.name?.charAt(0)?.toUpperCase() || "U"}
@@ -73,14 +74,14 @@ export default function AccountPage() {
             <div className="bg-white rounded-2xl border border-[#d4e8c2]/40 p-3">
               <nav className="space-y-1">
                 {[
-                  { icon: User, label: "Profile", active: true },
-                  { icon: Package, label: "Orders" },
+                  { icon: User, label: "Profile", active: true, href: "/account" },
+                  { icon: Package, label: "Orders", href: "/account" },
                   { icon: Heart, label: "Wishlist", href: "/wishlist" },
-                  { icon: Settings, label: "Settings" },
+                  { icon: Settings, label: "Settings", href: "/account" },
                 ].map((item) => (
                   <button
                     key={item.label}
-                    onClick={() => item.href && router.push(item.href)}
+                    onClick={() => router.push(item.href)}
                     className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-xl font-display text-sm transition-colors duration-200 ${
                       item.active
                         ? "bg-[#111111] text-white"

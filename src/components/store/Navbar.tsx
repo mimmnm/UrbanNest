@@ -2,12 +2,12 @@
 
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { Search, User, ShoppingBag, Heart, Menu, X, ChevronRight, LogIn, LogOut } from "lucide-react";
 import { useSession, signOut } from "next-auth/react";
 import { useCart } from "@/lib/cart-context";
-import { categories } from "@/lib/data";
+import type { Category } from "@/lib/data";
 
 const navLinks = [
   { href: "/products", label: "Shop" },
@@ -21,15 +21,31 @@ export default function Navbar() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [categories, setCategories] = useState<Category[]>([]);
   const { totalItems } = useCart();
   const { data: session } = useSession();
   const pathname = usePathname();
+  const router = useRouter();
   const isLoggedIn = !!session?.user;
 
   useEffect(() => {
     const handleScroll = () => setIsScrolled(window.scrollY > 20);
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  useEffect(() => {
+    async function fetchCategories() {
+      try {
+        const res = await fetch("/api/categories");
+        const data = await res.json();
+        setCategories(data.categories || []);
+      } catch (err) {
+        console.error("Failed to fetch categories:", err);
+      }
+    }
+    fetchCategories();
   }, []);
 
   // Close mobile menu on route change
@@ -169,22 +185,35 @@ export default function Navbar() {
                 className="border-t border-[#d4e8c2]/50 overflow-hidden"
               >
                 <div className="py-4 sm:py-5">
-                  <div className="relative max-w-xl mx-auto">
+                  <form
+                    className="relative max-w-xl mx-auto"
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      if (searchQuery.trim()) {
+                        router.push(`/products?search=${encodeURIComponent(searchQuery.trim())}`);
+                        setIsSearchOpen(false);
+                        setSearchQuery("");
+                      }
+                    }}
+                  >
                     <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-[#a1a1aa]" />
                     <input
                       type="text"
                       placeholder="Search for products..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
                       className="w-full pl-11 pr-10 py-3 sm:py-3.5 bg-[#f8f6f3] border border-[#d4e8c2] rounded-full text-sm font-display focus:outline-none focus:border-[#66a80f] focus:ring-1 focus:ring-[#66a80f]/20 transition-all placeholder:text-[#a1a1aa]"
                       autoFocus
                     />
                     <button
+                      type="button"
                       onClick={() => setIsSearchOpen(false)}
                       className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-[#a1a1aa] hover:text-[#111111] transition-colors"
                       aria-label="Close search"
                     >
                       <X size={16} />
                     </button>
-                  </div>
+                  </form>
                 </div>
               </motion.div>
             )}
@@ -246,8 +275,8 @@ export default function Navbar() {
                     <div className="grid grid-cols-2 gap-x-4 gap-y-2.5">
                       {categories.map((cat) => (
                         <Link
-                          key={cat.id}
-                          href={`/categories/${cat.id}`}
+                          key={cat.slug}
+                          href={`/products?category=${cat.slug}`}
                           onClick={closeMobile}
                           className="text-sm text-[#555] hover:text-[#66a80f] py-1 transition-colors"
                         >

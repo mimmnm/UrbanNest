@@ -46,6 +46,11 @@ export async function POST(request: NextRequest) {
       if (admin.loginAttempts >= 5) {
         admin.lockUntil = new Date(Date.now() + 15 * 60 * 1000);
         admin.loginAttempts = 0;
+        await admin.save();
+        return NextResponse.json(
+          { error: "Too many failed attempts. Account locked for 15 minutes." },
+          { status: 423 }
+        );
       }
       await admin.save();
 

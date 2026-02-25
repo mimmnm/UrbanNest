@@ -24,6 +24,16 @@ export async function verifyAdminToken(
 
   if (!payload.startsWith("v1:")) return false;
 
+  // Check token expiry (4 hours max)
+  try {
+    const parts = payload.split(":");
+    const issued = parseInt(parts[1], 10);
+    const maxAge = 4 * 60 * 60 * 1000; // 4 hours
+    if (isNaN(issued) || Date.now() - issued > maxAge) return false;
+  } catch {
+    return false;
+  }
+
   const expected = await hmacSign(payload, secret);
   return timingSafeEqual(signature, expected);
 }
