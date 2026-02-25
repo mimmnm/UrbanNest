@@ -2,6 +2,7 @@ import mongoose, { Schema, type Document } from "mongoose";
 
 export interface IStoreSettings extends Document {
   storeName: string;
+  logo: string;
   storeEmail: string;
   phone: string;
   address: string;
@@ -23,6 +24,7 @@ export interface IStoreSettings extends Document {
 const StoreSettingsSchema = new Schema<IStoreSettings>(
   {
     storeName: { type: String, default: "UrbanNest" },
+    logo: { type: String, default: "" },
     storeEmail: { type: String, default: "hello@urbannest.com.bd" },
     phone: { type: String, default: "+880 1700-000000" },
     address: { type: String, default: "Gulshan 2, Dhaka 1212" },

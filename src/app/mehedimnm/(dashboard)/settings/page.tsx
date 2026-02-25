@@ -1,11 +1,24 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { motion } from "framer-motion";
-import { Store, Globe, CreditCard, Bell, Save, Loader2, CheckCircle } from "lucide-react";
+import Image from "next/image";
+import {
+  Store,
+  Globe,
+  CreditCard,
+  Bell,
+  Save,
+  Loader2,
+  CheckCircle,
+  Upload,
+  X,
+  ImageIcon,
+} from "lucide-react";
 
 interface SettingsData {
   storeName: string;
+  logo: string;
   storeEmail: string;
   phone: string;
   address: string;
@@ -25,6 +38,7 @@ interface SettingsData {
 
 const defaultSettings: SettingsData = {
   storeName: "UrbanNest",
+  logo: "",
   storeEmail: "hello@urbannest.com.bd",
   phone: "+880 1700-000000",
   address: "Gulshan 2, Dhaka 1212",
@@ -47,6 +61,8 @@ export default function AdminSettingsPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const logoInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     fetch("/api/admin/settings")
@@ -80,6 +96,26 @@ export default function AdminSettingsPage() {
       console.error("Save failed:", err);
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    setUploading(true);
+    const formData = new FormData();
+    formData.append("files", files[0]);
+    try {
+      const res = await fetch("/api/admin/upload", { method: "POST", body: formData });
+      const data = await res.json();
+      if (data.urls?.[0]) {
+        setSettings((prev) => ({ ...prev, logo: data.urls[0] }));
+      }
+    } catch (err) {
+      console.error("Logo upload failed:", err);
+    } finally {
+      setUploading(false);
+      if (logoInputRef.current) logoInputRef.current.value = "";
     }
   };
 
@@ -139,24 +175,62 @@ export default function AdminSettingsPage() {
   ];
 
   return (
-    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-6 max-w-4xl">
+    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-5 sm:space-y-6 max-w-4xl mx-auto">
       <div>
-        <h2 className="text-2xl font-light text-stone-900">Settings</h2>
-        <p className="text-sm text-stone-500 mt-1">Manage your store configuration</p>
+        <h2 className="text-xl sm:text-2xl font-light text-stone-900">Settings</h2>
+        <p className="text-xs sm:text-sm text-stone-500 mt-1">Manage your store configuration</p>
       </div>
+
+      {/* Logo Upload Section */}
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="bg-white rounded-2xl border border-stone-100 overflow-hidden">
+        <div className="px-4 sm:px-6 py-3 sm:py-4 border-b border-stone-100 flex items-center gap-3">
+          <div className="w-8 h-8 rounded-lg bg-stone-100 flex items-center justify-center flex-shrink-0">
+            <ImageIcon size={16} className="text-stone-600" />
+          </div>
+          <div className="min-w-0">
+            <h3 className="text-sm font-medium text-stone-900">Store Logo</h3>
+            <p className="text-xs text-stone-400 truncate">Displayed in the store header next to the name</p>
+          </div>
+        </div>
+        <div className="p-4 sm:p-6">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+            {settings.logo ? (
+              <div className="relative w-20 h-20 rounded-xl overflow-hidden bg-stone-100 group flex-shrink-0">
+                <Image src={settings.logo} alt="Store Logo" fill className="object-contain" sizes="80px" />
+                <button onClick={() => updateField("logo", "")} className="absolute top-1 right-1 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                  <X size={10} />
+                </button>
+              </div>
+            ) : (
+              <button onClick={() => logoInputRef.current?.click()} className="w-20 h-20 rounded-xl border-2 border-dashed border-stone-200 flex flex-col items-center justify-center text-stone-400 hover:border-stone-400 hover:text-stone-600 transition-colors flex-shrink-0">
+                {uploading ? <Loader2 size={20} className="animate-spin" /> : <><Upload size={20} /><span className="text-[10px] mt-1">Upload</span></>}
+              </button>
+            )}
+            <div className="min-w-0">
+              <p className="text-sm text-stone-700">{settings.logo ? "Logo uploaded. Click the X to remove." : "Upload your store logo (recommended: 200×200px, PNG or SVG)."}</p>
+              {settings.logo && (
+                <button onClick={() => logoInputRef.current?.click()} className="text-xs text-stone-500 hover:text-stone-900 mt-1 underline">
+                  {uploading ? "Uploading..." : "Replace logo"}
+                </button>
+              )}
+            </div>
+          </div>
+          <input ref={logoInputRef} type="file" accept="image/*" onChange={handleLogoUpload} className="hidden" />
+        </div>
+      </motion.div>
 
       {sections.map((section, i) => (
         <motion.div key={section.title} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.1 }} className="bg-white rounded-2xl border border-stone-100 overflow-hidden">
-          <div className="px-6 py-4 border-b border-stone-100 flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-stone-100 flex items-center justify-center">
+          <div className="px-4 sm:px-6 py-3 sm:py-4 border-b border-stone-100 flex items-center gap-3">
+            <div className="w-8 h-8 rounded-lg bg-stone-100 flex items-center justify-center flex-shrink-0">
               <section.icon size={16} className="text-stone-600" />
             </div>
-            <div>
+            <div className="min-w-0">
               <h3 className="text-sm font-medium text-stone-900">{section.title}</h3>
-              <p className="text-xs text-stone-400">{section.description}</p>
+              <p className="text-xs text-stone-400 truncate">{section.description}</p>
             </div>
           </div>
-          <div className="p-6 space-y-4">
+          <div className="p-4 sm:p-6 space-y-4">
             {section.fields.map((field) => (
               <div key={field.key}>
                 <label className="block text-xs text-stone-500 mb-1.5">{field.label}</label>
@@ -164,7 +238,7 @@ export default function AdminSettingsPage() {
                   type={field.type}
                   value={settings[field.key] as string | number}
                   onChange={(e) => updateField(field.key, field.type === "number" ? Number(e.target.value) : e.target.value)}
-                  className="w-full px-4 py-3 bg-stone-50 border border-stone-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-stone-300 transition-all"
+                  className="w-full px-3 sm:px-4 py-2.5 sm:py-3 bg-stone-50 border border-stone-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-stone-300 transition-all"
                 />
               </div>
             ))}
@@ -174,26 +248,21 @@ export default function AdminSettingsPage() {
 
       {/* Notifications */}
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} className="bg-white rounded-2xl border border-stone-100 overflow-hidden">
-        <div className="px-6 py-4 border-b border-stone-100 flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-stone-100 flex items-center justify-center">
+        <div className="px-4 sm:px-6 py-3 sm:py-4 border-b border-stone-100 flex items-center gap-3">
+          <div className="w-8 h-8 rounded-lg bg-stone-100 flex items-center justify-center flex-shrink-0">
             <Bell size={16} className="text-stone-600" />
           </div>
-          <div>
+          <div className="min-w-0">
             <h3 className="text-sm font-medium text-stone-900">Notifications</h3>
-            <p className="text-xs text-stone-400">Email and notification settings</p>
+            <p className="text-xs text-stone-400 truncate">Email and notification settings</p>
           </div>
         </div>
-        <div className="p-6 space-y-4">
+        <div className="p-4 sm:p-6 space-y-4">
           {toggles.map((toggle) => (
-            <div key={toggle.key} className="flex items-center justify-between">
-              <span className="text-sm text-stone-700">{toggle.label}</span>
-              <label className="relative inline-flex items-center cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={settings[toggle.key] as boolean}
-                  onChange={(e) => updateField(toggle.key, e.target.checked)}
-                  className="sr-only peer"
-                />
+            <div key={toggle.key} className="flex items-center justify-between gap-3">
+              <span className="text-sm text-stone-700 min-w-0">{toggle.label}</span>
+              <label className="relative inline-flex items-center cursor-pointer flex-shrink-0">
+                <input type="checkbox" checked={settings[toggle.key] as boolean} onChange={(e) => updateField(toggle.key, e.target.checked)} className="sr-only peer" />
                 <div className="w-11 h-6 bg-stone-200 peer-focus:ring-2 peer-focus:ring-stone-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-stone-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-stone-900" />
               </label>
             </div>
@@ -202,13 +271,13 @@ export default function AdminSettingsPage() {
       </motion.div>
 
       {/* Save */}
-      <div className="flex justify-end gap-3 pt-4">
+      <div className="flex flex-col-reverse sm:flex-row justify-end items-stretch sm:items-center gap-3 pt-2 pb-4">
         {saved && (
-          <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="flex items-center gap-2 text-sm text-emerald-600">
+          <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="flex items-center justify-center gap-2 text-sm text-emerald-600">
             <CheckCircle size={16} /> Settings saved!
           </motion.div>
         )}
-        <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={handleSave} disabled={saving} className="flex items-center gap-2 px-8 py-3 bg-stone-900 text-white rounded-xl text-sm font-medium hover:bg-stone-800 transition-colors disabled:opacity-50">
+        <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={handleSave} disabled={saving} className="flex items-center justify-center gap-2 px-8 py-3 bg-stone-900 text-white rounded-xl text-sm font-medium hover:bg-stone-800 transition-colors disabled:opacity-50">
           {saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
           Save Changes
         </motion.button>

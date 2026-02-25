@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { writeFile, mkdir } from "fs/promises";
-import path from "path";
 import { cookies } from "next/headers";
 import { verifyAdminToken } from "@/lib/admin-token";
+import { uploadToCloudinary } from "@/lib/cloudinary";
 
 export async function POST(request: NextRequest) {
   try {
@@ -28,36 +27,30 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "No files uploaded" }, { status: 400 });
     }
 
-    const uploadDir = path.join(process.cwd(), "public", "uploads");
-    await mkdir(uploadDir, { recursive: true });
-
     const urls: string[] = [];
 
     for (const file of files) {
-      if (!file.type.startsWith("image/")) {
+      // Allow images and videos
+      if (!file.type.startsWith("image/") && !file.type.startsWith("video/")) {
         continue;
       }
 
-      // Max 5MB per file
-      if (file.size > 5 * 1024 * 1024) {
+      // Max 10MB per file (Cloudinary supports larger files)
+      if (file.size > 10 * 1024 * 1024) {
         continue;
       }
 
       const bytes = await file.arrayBuffer();
       const buffer = Buffer.from(bytes);
 
-      // Generate unique filename
-      const ext = file.name.split(".").pop() || "jpg";
-      const uniqueName = `${Date.now()}-${Math.random().toString(36).substring(2, 8)}.${ext}`;
-      const filePath = path.join(uploadDir, uniqueName);
-
-      await writeFile(filePath, buffer);
-      urls.push(`/uploads/${uniqueName}`);
+      // Upload to Cloudinary
+      const cloudinaryUrl = await uploadToCloudinary(buffer, "urbannest/products");
+      urls.push(cloudinaryUrl);
     }
 
     if (urls.length === 0) {
       return NextResponse.json(
-        { error: "No valid image files were uploaded (max 5MB, images only)" },
+        { error: "No valid files were uploaded (max 10MB, images & videos only)" },
         { status: 400 }
       );
     }

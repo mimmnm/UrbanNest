@@ -12,6 +12,7 @@ import {
   XCircle,
   Loader2,
   X,
+  ChevronDown,
 } from "lucide-react";
 import { formatPrice } from "@/lib/utils";
 
@@ -81,7 +82,6 @@ export default function AdminOrdersPage() {
     }
   }, [search, statusFilter]);
 
-  // Debounced search/filter
   useEffect(() => {
     const timer = setTimeout(() => fetchOrders(), 300);
     return () => clearTimeout(timer);
@@ -118,20 +118,23 @@ export default function AdminOrdersPage() {
   }
 
   return (
-    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-light text-stone-900">Orders</h2>
-        <p className="text-sm text-stone-500 mt-1">Track and manage customer orders ({orders.length} total)</p>
+    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-4 sm:space-y-6">
+      {/* Header */}
+      <div className="min-w-0">
+        <h2 className="text-xl sm:text-2xl font-light text-stone-900">Orders</h2>
+        <p className="text-xs sm:text-sm text-stone-500 mt-1">Track and manage customer orders ({orders.length} total)</p>
       </div>
 
-      <div className="flex flex-col sm:flex-row gap-4">
-        <div className="relative flex-1">
-          <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-stone-400" />
-          <input type="text" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search orders..." className="w-full pl-12 pr-4 py-3 bg-white border border-stone-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-stone-300 transition-all" />
+      {/* Search + Filter */}
+      <div className="flex flex-col gap-3">
+        <div className="relative">
+          <Search size={18} className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 text-stone-400" />
+          <input type="text" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search orders..." className="w-full pl-10 sm:pl-12 pr-4 py-2.5 sm:py-3 bg-white border border-stone-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-stone-300 transition-all" />
         </div>
-        <div className="flex gap-2 flex-wrap">
+        {/* Mobile: scrollable filter row */}
+        <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1 scrollbar-hide">
           {["all", "pending", "processing", "shipped", "delivered", "cancelled"].map((status) => (
-            <button key={status} onClick={() => setStatusFilter(status)} className={`px-4 py-2 rounded-xl text-sm transition-all border ${statusFilter === status ? "bg-stone-900 text-white border-stone-900" : "bg-white text-stone-600 border-stone-200 hover:border-stone-300"}`}>
+            <button key={status} onClick={() => setStatusFilter(status)} className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg sm:rounded-xl text-xs sm:text-sm transition-all border flex-shrink-0 ${statusFilter === status ? "bg-stone-900 text-white border-stone-900" : "bg-white text-stone-600 border-stone-200 hover:border-stone-300"}`}>
               {status.charAt(0).toUpperCase() + status.slice(1)}
             </button>
           ))}
@@ -139,60 +142,71 @@ export default function AdminOrdersPage() {
       </div>
 
       {orders.length === 0 ? (
-        <div className="text-center py-16">
-          <Package size={48} className="mx-auto text-stone-200 mb-3" />
+        <div className="text-center py-12 sm:py-16">
+          <Package size={40} className="mx-auto text-stone-200 mb-3" />
           <p className="text-sm text-stone-400">No orders found</p>
         </div>
       ) : (
-        <div className="space-y-4">
+        <div className="space-y-3 sm:space-y-4">
           {orders.map((order, i) => {
             const oid = order.id || order._id || "";
             const StatusIcon = statusIcons[order.status] || Clock;
             return (
-              <motion.div key={oid} initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }} className="bg-white rounded-2xl border border-stone-100 p-6 hover:shadow-lg transition-shadow">
-                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-                  <div className="flex items-start gap-4">
-                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${statusColors[order.status]?.split(" ").slice(0, 1).join(" ") || "bg-stone-50"}`}>
-                      <StatusIcon size={18} className={statusColors[order.status]?.split(" ").slice(1, 2).join(" ") || "text-stone-500"} />
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-3 flex-wrap">
-                        <h3 className="text-sm font-semibold text-stone-900">{order.orderId}</h3>
-                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${statusColors[order.status] || ""}`}>
-                          {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
-                        </span>
-                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium ${order.paymentStatus === "paid" ? "bg-emerald-100 text-emerald-700" : order.paymentStatus === "refunded" ? "bg-red-100 text-red-700" : "bg-stone-100 text-stone-600"}`}>
-                          {order.paymentStatus}
-                        </span>
-                      </div>
-                      <p className="text-sm text-stone-600 mt-1">{order.customer} · {order.email}</p>
-                      {order.phone && <p className="text-xs text-stone-400">{order.phone}</p>}
-                    </div>
+              <motion.div key={oid} initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }} className="bg-white rounded-xl sm:rounded-2xl border border-stone-100 p-3 sm:p-5 hover:shadow-lg transition-shadow">
+                {/* Top: Order info + Status */}
+                <div className="flex items-start gap-2.5 sm:gap-4">
+                  <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl flex items-center justify-center flex-shrink-0 ${statusColors[order.status]?.split(" ").slice(0, 1).join(" ") || "bg-stone-50"}`}>
+                    <StatusIcon size={16} className={`sm:w-[18px] sm:h-[18px] ${statusColors[order.status]?.split(" ").slice(1, 2).join(" ") || "text-stone-500"}`} />
                   </div>
-                  <div className="flex items-center gap-4 lg:text-right">
-                    <div>
-                      <p className="text-lg font-semibold text-stone-900">{formatPrice(order.total)}</p>
-                      <p className="text-xs text-stone-400">{order.items?.length || 0} items · {new Date(order.createdAt).toLocaleDateString()}</p>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <h3 className="text-sm font-semibold text-stone-900">{order.orderId}</h3>
+                          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium border ${statusColors[order.status] || ""}`}>
+                            {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
+                          </span>
+                          <span className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium ${order.paymentStatus === "paid" ? "bg-emerald-100 text-emerald-700" : order.paymentStatus === "refunded" ? "bg-red-100 text-red-700" : "bg-stone-100 text-stone-600"}`}>
+                            {order.paymentStatus}
+                          </span>
+                        </div>
+                        <p className="text-xs sm:text-sm text-stone-600 mt-0.5 truncate">{order.customer} · {order.email}</p>
+                        {order.phone && <p className="text-[10px] sm:text-xs text-stone-400">{order.phone}</p>}
+                      </div>
+                      <div className="text-right flex-shrink-0">
+                        <p className="text-sm sm:text-lg font-semibold text-stone-900">{formatPrice(order.total)}</p>
+                        <p className="text-[10px] sm:text-xs text-stone-400">{order.items?.length || 0} items</p>
+                      </div>
                     </div>
-                    <div className="flex gap-2">
-                      <select value={order.status} onChange={(e) => handleStatusChange(oid, e.target.value)} disabled={updatingStatus} className="text-xs border border-stone-200 rounded-lg px-2 py-1.5 bg-white focus:outline-none focus:ring-1 focus:ring-stone-300">
-                        <option value="pending">Pending</option>
-                        <option value="processing">Processing</option>
-                        <option value="shipped">Shipped</option>
-                        <option value="delivered">Delivered</option>
-                        <option value="cancelled">Cancelled</option>
-                      </select>
-                      <button onClick={() => setSelectedOrder(order)} className="p-2 text-stone-400 hover:text-stone-900 rounded-lg hover:bg-stone-100 transition-colors">
-                        <Eye size={18} />
-                      </button>
+
+                    {/* Actions row */}
+                    <div className="flex items-center justify-between mt-2.5 pt-2.5 border-t border-stone-100">
+                      <p className="text-[10px] sm:text-xs text-stone-400">{new Date(order.createdAt).toLocaleDateString()}</p>
+                      <div className="flex items-center gap-2">
+                        <div className="relative">
+                          <select value={order.status} onChange={(e) => handleStatusChange(oid, e.target.value)} disabled={updatingStatus} className="text-[10px] sm:text-xs border border-stone-200 rounded-lg px-2 py-1 sm:py-1.5 bg-white focus:outline-none focus:ring-1 focus:ring-stone-300 appearance-none pr-6">
+                            <option value="pending">Pending</option>
+                            <option value="processing">Processing</option>
+                            <option value="shipped">Shipped</option>
+                            <option value="delivered">Delivered</option>
+                            <option value="cancelled">Cancelled</option>
+                          </select>
+                          <ChevronDown size={10} className="absolute right-1.5 top-1/2 -translate-y-1/2 text-stone-400 pointer-events-none" />
+                        </div>
+                        <button onClick={() => setSelectedOrder(order)} className="p-1.5 sm:p-2 text-stone-400 hover:text-stone-900 rounded-lg hover:bg-stone-100 transition-colors">
+                          <Eye size={14} className="sm:w-[18px] sm:h-[18px]" />
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>
+
+                {/* Items preview - hidden on very small screens */}
                 {order.items && order.items.length > 0 && (
-                  <div className="mt-4 pt-4 border-t border-stone-100">
-                    <div className="flex flex-wrap gap-2">
+                  <div className="hidden sm:block mt-3 pt-3 border-t border-stone-100">
+                    <div className="flex flex-wrap gap-1.5">
                       {order.items.map((item, idx) => (
-                        <span key={idx} className="text-xs bg-stone-50 text-stone-600 px-3 py-1.5 rounded-lg">
+                        <span key={idx} className="text-[10px] sm:text-xs bg-stone-50 text-stone-600 px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg truncate max-w-[200px]">
                           {item.name} × {item.quantity}
                         </span>
                       ))}
@@ -208,51 +222,51 @@ export default function AdminOrdersPage() {
       {/* Order Detail Modal */}
       <AnimatePresence>
         {selectedOrder && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
             <div className="absolute inset-0 bg-stone-900/30 backdrop-blur-sm" onClick={() => setSelectedOrder(null)} />
-            <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }} className="relative bg-white rounded-2xl shadow-xl w-full max-w-lg max-h-[85vh] overflow-y-auto">
-              <div className="flex items-center justify-between px-6 py-4 border-b border-stone-100 sticky top-0 bg-white rounded-t-2xl z-10">
-                <h3 className="text-lg font-medium text-stone-900">Order {selectedOrder.orderId}</h3>
-                <button onClick={() => setSelectedOrder(null)} className="p-2 text-stone-400 hover:text-stone-900"><X size={18} /></button>
+            <motion.div initial={{ scale: 0.95, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0, y: 20 }} className="relative bg-white rounded-t-2xl sm:rounded-2xl shadow-xl w-full sm:max-w-lg max-h-[90vh] sm:max-h-[85vh] overflow-y-auto">
+              <div className="flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4 border-b border-stone-100 sticky top-0 bg-white rounded-t-2xl sm:rounded-t-2xl z-10">
+                <h3 className="text-base sm:text-lg font-medium text-stone-900 truncate pr-2">Order {selectedOrder.orderId}</h3>
+                <button onClick={() => setSelectedOrder(null)} className="p-2 text-stone-400 hover:text-stone-900 flex-shrink-0"><X size={18} /></button>
               </div>
-              <div className="p-6 space-y-5">
-                <div className="grid grid-cols-2 gap-4">
+              <div className="p-4 sm:p-6 space-y-4 sm:space-y-5">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                   <div>
-                    <p className="text-xs text-stone-400 mb-1">Customer</p>
+                    <p className="text-[10px] sm:text-xs text-stone-400 mb-1">Customer</p>
                     <p className="text-sm font-medium text-stone-900">{selectedOrder.customer}</p>
-                    <p className="text-xs text-stone-500">{selectedOrder.email}</p>
+                    <p className="text-xs text-stone-500 truncate">{selectedOrder.email}</p>
                     {selectedOrder.phone && <p className="text-xs text-stone-500">{selectedOrder.phone}</p>}
                   </div>
                   <div>
-                    <p className="text-xs text-stone-400 mb-1">Shipping Address</p>
-                    <p className="text-sm text-stone-700">{selectedOrder.shippingAddress || "—"}</p>
+                    <p className="text-[10px] sm:text-xs text-stone-400 mb-1">Shipping Address</p>
+                    <p className="text-xs sm:text-sm text-stone-700">{selectedOrder.shippingAddress || "—"}</p>
                   </div>
                 </div>
                 <div>
-                  <p className="text-xs text-stone-400 mb-2">Items</p>
+                  <p className="text-[10px] sm:text-xs text-stone-400 mb-2">Items</p>
                   <div className="space-y-2">
                     {selectedOrder.items?.map((item, idx) => (
-                      <div key={idx} className="flex items-center justify-between py-2 border-b border-stone-50 last:border-0">
-                        <div>
-                          <p className="text-sm text-stone-900">{item.name}</p>
-                          <p className="text-xs text-stone-400">Qty: {item.quantity}</p>
+                      <div key={idx} className="flex items-center justify-between py-2 border-b border-stone-50 last:border-0 gap-2">
+                        <div className="min-w-0">
+                          <p className="text-sm text-stone-900 truncate">{item.name}</p>
+                          <p className="text-[10px] sm:text-xs text-stone-400">Qty: {item.quantity}</p>
                         </div>
-                        <p className="text-sm font-medium text-stone-900">{formatPrice(item.price * item.quantity)}</p>
+                        <p className="text-sm font-medium text-stone-900 flex-shrink-0">{formatPrice(item.price * item.quantity)}</p>
                       </div>
                     ))}
                   </div>
                 </div>
-                <div className="bg-stone-50 rounded-xl p-4 space-y-2">
-                  <div className="flex justify-between text-sm"><span className="text-stone-500">Subtotal</span><span className="text-stone-900">{formatPrice(selectedOrder.subtotal)}</span></div>
-                  <div className="flex justify-between text-sm"><span className="text-stone-500">Shipping</span><span className="text-stone-900">{selectedOrder.shipping === 0 ? "Free" : formatPrice(selectedOrder.shipping)}</span></div>
-                  <div className="flex justify-between text-sm font-semibold border-t border-stone-200 pt-2"><span className="text-stone-900">Total</span><span className="text-stone-900">{formatPrice(selectedOrder.total)}</span></div>
+                <div className="bg-stone-50 rounded-xl p-3 sm:p-4 space-y-2">
+                  <div className="flex justify-between text-xs sm:text-sm"><span className="text-stone-500">Subtotal</span><span className="text-stone-900">{formatPrice(selectedOrder.subtotal)}</span></div>
+                  <div className="flex justify-between text-xs sm:text-sm"><span className="text-stone-500">Shipping</span><span className="text-stone-900">{selectedOrder.shipping === 0 ? "Free" : formatPrice(selectedOrder.shipping)}</span></div>
+                  <div className="flex justify-between text-xs sm:text-sm font-semibold border-t border-stone-200 pt-2"><span className="text-stone-900">Total</span><span className="text-stone-900">{formatPrice(selectedOrder.total)}</span></div>
                 </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div><p className="text-xs text-stone-400 mb-1">Payment</p><p className="text-sm text-stone-700 capitalize">{selectedOrder.paymentMethod}</p></div>
-                  <div><p className="text-xs text-stone-400 mb-1">Payment Status</p><p className="text-sm text-stone-700 capitalize">{selectedOrder.paymentStatus}</p></div>
+                <div className="grid grid-cols-2 gap-3 sm:gap-4">
+                  <div><p className="text-[10px] sm:text-xs text-stone-400 mb-1">Payment</p><p className="text-xs sm:text-sm text-stone-700 capitalize">{selectedOrder.paymentMethod}</p></div>
+                  <div><p className="text-[10px] sm:text-xs text-stone-400 mb-1">Payment Status</p><p className="text-xs sm:text-sm text-stone-700 capitalize">{selectedOrder.paymentStatus}</p></div>
                 </div>
                 {selectedOrder.notes && (
-                  <div><p className="text-xs text-stone-400 mb-1">Notes</p><p className="text-sm text-stone-700">{selectedOrder.notes}</p></div>
+                  <div><p className="text-[10px] sm:text-xs text-stone-400 mb-1">Notes</p><p className="text-xs sm:text-sm text-stone-700">{selectedOrder.notes}</p></div>
                 )}
               </div>
             </motion.div>

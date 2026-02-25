@@ -4,6 +4,7 @@ import { Product } from "@/models/Product";
 import { slugify } from "@/lib/utils";
 import { cookies } from "next/headers";
 import { verifyAdminToken } from "@/lib/admin-token";
+import { deleteFromCloudinary } from "@/lib/cloudinary";
 
 async function verifyAdmin() {
   const cookieStore = await cookies();
@@ -109,6 +110,15 @@ export async function DELETE(
     const product = await Product.findByIdAndDelete(id);
     if (!product) {
       return NextResponse.json({ error: "Product not found" }, { status: 404 });
+    }
+
+    // Delete images from Cloudinary
+    if (product.images && product.images.length > 0) {
+      await Promise.allSettled(
+        product.images
+          .filter((url: string) => url.includes("cloudinary.com"))
+          .map((url: string) => deleteFromCloudinary(url))
+      );
     }
 
     return NextResponse.json({ success: true });

@@ -52,7 +52,7 @@ export async function PUT(request: NextRequest) {
 
     // Update all provided fields
     const allowedFields = [
-      "storeName", "storeEmail", "phone", "address",
+      "storeName", "logo", "storeEmail", "phone", "address",
       "metaTitle", "metaDescription", "instagram", "facebook", "twitter",
       "currency", "shippingFee", "freeShippingMin",
       "orderNotifications", "lowStockAlerts", "customerSignupNotifications", "weeklyReportEmail",
