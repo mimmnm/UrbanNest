@@ -67,5 +67,7 @@ export const config = {
     "/checkout/:path*",
     "/login",
     "/signup",
+    "/verify-email",
+    "/forgot-password",
   ],
 };

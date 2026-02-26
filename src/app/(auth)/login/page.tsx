@@ -30,6 +30,11 @@ export default function LoginPage() {
 
       if (!validateRes.ok) {
         const data = await validateRes.json();
+        // If unverified, redirect to verify page
+        if (data.error === "UNVERIFIED" && data.email) {
+          router.push(`/verify-email?email=${encodeURIComponent(data.email)}`);
+          return;
+        }
         setError(data.error || "Login failed");
         return;
       }

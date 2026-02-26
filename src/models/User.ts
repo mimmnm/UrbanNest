@@ -13,6 +13,7 @@ export interface IUser extends Document {
   zipCode?: string;
   dateOfBirth?: string;
   gender?: string;
+  isVerified: boolean;
   loginAttempts: number;
   lockUntil?: Date;
   createdAt: Date;
@@ -54,6 +55,7 @@ const UserSchema = new Schema<IUser>(
     zipCode: { type: String, default: "" },
     dateOfBirth: { type: String, default: "" },
     gender: { type: String, enum: ["", "male", "female", "other"], default: "" },
+    isVerified: { type: Boolean, default: false },
     loginAttempts: { type: Number, default: 0 },
     lockUntil: { type: Date },
   },

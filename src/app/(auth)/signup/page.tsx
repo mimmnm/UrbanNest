@@ -46,18 +46,8 @@ export default function SignupPage() {
         return;
       }
 
-      const signInRes = await signIn("credentials", {
-        identifier: form.email,
-        password: form.password,
-        redirect: false,
-      });
-
-      if (signInRes?.error) {
-        router.push("/login");
-      } else {
-        router.push("/");
-        router.refresh();
-      }
+      // Redirect to OTP verification page
+      router.push(`/verify-email?email=${encodeURIComponent(form.email)}`);
     } catch {
       setError("Something went wrong. Please try again.");
     } finally {

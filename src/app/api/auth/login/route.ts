@@ -31,6 +31,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Check if account is verified
+    if (!user.isVerified) {
+      return NextResponse.json(
+        { error: "UNVERIFIED", email: user.email },
+        { status: 403 }
+      );
+    }
+
     // Check if account is locked (brute force protection)
     if (user.lockUntil && user.lockUntil > new Date()) {
       const mins = Math.ceil(

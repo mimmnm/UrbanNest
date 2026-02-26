@@ -35,6 +35,11 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           throw new Error("No account found");
         }
 
+        // Check if account is verified
+        if (!user.isVerified) {
+          throw new Error("UNVERIFIED:" + user.email);
+        }
+
         // Check if account is locked (brute force protection)
         if (user.lockUntil && user.lockUntil > new Date()) {
           const mins = Math.ceil((user.lockUntil.getTime() - Date.now()) / 60000);
@@ -83,6 +88,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             email: user.email,
             password: "",
             avatar: user.image || "",
+            isVerified: true,
           });
         }
       }
