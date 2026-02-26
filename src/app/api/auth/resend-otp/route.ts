@@ -31,7 +31,7 @@ export async function POST(request: NextRequest) {
       if (timeSinceLastSent < cooldown) {
         const remaining = Math.ceil((cooldown - timeSinceLastSent) / 1000);
         return NextResponse.json(
-          { error: `অনুগ্রহ করে ${remaining} সেকেন্ড অপেক্ষা করুন।`, remainingSeconds: remaining },
+          { error: `Please wait ${remaining} seconds before resending.`, remainingSeconds: remaining },
           { status: 429 }
         );
       }

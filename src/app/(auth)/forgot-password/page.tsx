@@ -149,7 +149,7 @@ function ForgotPasswordContent() {
             <h2 className="font-display text-4xl font-semibold text-white mb-4">Reset Password</h2>
             <p className="font-accent text-[#66a80f] text-xl mb-6">don&apos;t worry, we got you</p>
             <p className="text-white/50 text-sm leading-relaxed max-w-sm mx-auto">
-              আপনার ইমেইলে একটি ভেরিফিকেশন কোড পাঠানো হবে। সেই কোড দিয়ে নতুন পাসওয়ার্ড সেট করুন।
+              We&apos;ll send a verification code to your email. Use that code to set a new password.
             </p>
           </motion.div>
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }} className="mt-12">
@@ -206,8 +206,8 @@ function ForgotPasswordContent() {
               {/* ═══ Step 1: Email ═══ */}
               {step === "email" && (
                 <motion.div key="email" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-                  <h1 className="font-display text-xl sm:text-2xl font-semibold text-[#111] mb-1">পাসওয়ার্ড ভুলে গেছেন?</h1>
-                  <p className="text-sm text-[#a1a1aa] mb-5 font-display">আপনার অ্যাকাউন্টের ইমেইল দিন, আমরা একটি OTP পাঠাব।</p>
+                  <h1 className="font-display text-xl sm:text-2xl font-semibold text-[#111] mb-1">Forgot Password?</h1>
+                  <p className="text-sm text-[#a1a1aa] mb-5 font-display">Enter your account email and we&apos;ll send you an OTP.</p>
                   <div className="mb-4">
                     <label className="block text-xs font-display font-semibold text-[#111] uppercase tracking-wider mb-1.5">Email Address</label>
                     <div className="relative">
@@ -228,12 +228,12 @@ function ForgotPasswordContent() {
               {/* ═══ Step 2: OTP ═══ */}
               {step === "otp" && (
                 <motion.div key="otp" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-                  <h1 className="font-display text-xl sm:text-2xl font-semibold text-[#111] mb-1">OTP দিন</h1>
+                  <h1 className="font-display text-xl sm:text-2xl font-semibold text-[#111] mb-1">Enter OTP</h1>
                   <div className="flex items-center gap-2 mb-5">
                     <Mail size={14} className="text-[#66a80f]" />
                     <p className="text-sm text-[#a1a1aa] font-display">{email}</p>
                   </div>
-                  <p className="text-sm text-[#555] mb-5 font-display">আপনার ইমেইলে পাঠানো <strong>৬ সংখ্যার কোড</strong> দিন।</p>
+                  <p className="text-sm text-[#555] mb-5 font-display">Enter the <strong>6-digit code</strong> sent to your email.</p>
 
                   <div className="flex gap-2.5 justify-center mb-6" onPaste={handlePaste}>
                     {otp.map((digit, i) => (
@@ -261,7 +261,7 @@ function ForgotPasswordContent() {
                     </button>
                     {otpSentOnce && cooldown > 0 && (
                       <p className="text-[10px] text-[#a1a1aa] mt-1 font-display">
-                        পরবর্তী রিসেন্ড ৫ মিনিট পর
+                        Next resend available after 5 minutes
                       </p>
                     )}
                   </div>
@@ -271,8 +271,8 @@ function ForgotPasswordContent() {
               {/* ═══ Step 3: New Password ═══ */}
               {step === "reset" && (
                 <motion.div key="reset" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-                  <h1 className="font-display text-xl sm:text-2xl font-semibold text-[#111] mb-1">নতুন পাসওয়ার্ড সেট করুন</h1>
-                  <p className="text-sm text-[#a1a1aa] mb-5 font-display">আপনার নতুন পাসওয়ার্ড দিন।</p>
+                  <h1 className="font-display text-xl sm:text-2xl font-semibold text-[#111] mb-1">Set New Password</h1>
+                  <p className="text-sm text-[#a1a1aa] mb-5 font-display">Enter your new password below.</p>
                   <div className="space-y-3 mb-5">
                     <div>
                       <label className="block text-xs font-display font-semibold text-[#111] uppercase tracking-wider mb-1.5">New Password</label>

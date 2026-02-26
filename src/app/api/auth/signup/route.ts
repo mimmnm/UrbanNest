@@ -86,6 +86,13 @@ export async function POST(request: NextRequest) {
     );
   } catch (error: unknown) {
     console.error("Signup error:", error);
+    const msg = error instanceof Error ? error.message : "";
+    if (msg.includes("Failed to send email")) {
+      return NextResponse.json(
+        { error: "Failed to send verification email. Please try again later." },
+        { status: 502 }
+      );
+    }
     return NextResponse.json(
       { error: "Something went wrong. Please try again." },
       { status: 500 }

@@ -134,7 +134,7 @@ function VerifyEmailContent() {
             <h2 className="font-display text-4xl font-semibold text-white mb-4">Verify Your Email</h2>
             <p className="font-accent text-[#66a80f] text-xl mb-6">almost there!</p>
             <p className="text-white/50 text-sm leading-relaxed max-w-sm mx-auto">
-              আপনার ইমেইলে পাঠানো ৬ সংখ্যার কোডটি দিয়ে অ্যাকাউন্ট অ্যাক্টিভেট করুন।
+              Enter the 6-digit code sent to your email to activate your account.
             </p>
           </motion.div>
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }} className="mt-12">
@@ -159,7 +159,7 @@ function VerifyEmailContent() {
           </Link>
 
           <h1 className="font-display text-xl sm:text-2xl lg:text-3xl font-semibold text-[#111] mb-1">
-            ইমেইল ভেরিফিকেশন
+            Email Verification
           </h1>
           <div className="flex items-center gap-2 mb-6">
             <Mail size={14} className="text-[#66a80f]" />
@@ -186,7 +186,7 @@ function VerifyEmailContent() {
           {!success && (
             <>
               <p className="text-sm text-[#555] mb-5 leading-relaxed font-display">
-                আপনার ইমেইলে একটি <strong>৬ সংখ্যার কোড</strong> পাঠানো হয়েছে। কোডটি <strong>১৫ মিনিট</strong> পর মেয়াদোত্তীর্ণ হবে।
+                A <strong>6-digit code</strong> has been sent to your email. The code will expire in <strong>15 minutes</strong>.
               </p>
 
               {/* OTP Input */}
@@ -221,7 +221,7 @@ function VerifyEmailContent() {
               </button>
 
               <div className="text-center">
-                <p className="text-xs text-[#a1a1aa] mb-2 font-display">কোড পাননি?</p>
+                <p className="text-xs text-[#a1a1aa] mb-2 font-display">Didn&apos;t receive the code?</p>
                 <button
                   onClick={handleResend}
                   disabled={resending || cooldown > 0}

@@ -92,8 +92,8 @@ export default function AccountOverviewPage() {
         >
           <AlertTriangle size={18} className="text-amber-500 mt-0.5 shrink-0" />
           <div className="flex-1">
-            <p className="text-sm font-medium text-amber-800">মোবাইল নম্বর যোগ করুন</p>
-            <p className="text-xs text-amber-600 mt-0.5">অর্ডার ডেলিভারির জন্য আপনার মোবাইল নম্বর আবশ্যক।</p>
+            <p className="text-sm font-medium text-amber-800">Add your mobile number</p>
+            <p className="text-xs text-amber-600 mt-0.5">A mobile number is required for order delivery.</p>
           </div>
           <Link href="/account/settings" className="text-xs font-medium text-amber-700 hover:text-amber-900 underline shrink-0">
             Update

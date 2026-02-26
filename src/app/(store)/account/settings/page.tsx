@@ -85,7 +85,7 @@ export default function AccountSettingsPage() {
     setMessage(null);
 
     if (!form.phone.trim()) {
-      setMessage({ type: "error", text: "মোবাইল নম্বর আবশ্যক। অনুগ্রহ করে আপনার মোবাইল নম্বর দিন।" });
+      setMessage({ type: "error", text: "Mobile number is required. Please enter your phone number." });
       return;
     }
 
@@ -219,7 +219,7 @@ export default function AccountSettingsPage() {
               placeholder="01XXXXXXXXX" type="tel"
             />
             {!form.phone && (
-              <p className="text-[11px] text-red-500 mt-1 font-display">মোবাইল নম্বর আবশ্যক</p>
+              <p className="text-[11px] text-red-500 mt-1 font-display">Mobile number is required</p>
             )}
           </Field>
           <Field label="Date of Birth" icon={Calendar}>

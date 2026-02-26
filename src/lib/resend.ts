@@ -9,8 +9,8 @@ export async function sendOtpEmail(
 ) {
   const isSignup = type === "signup";
   const subject = isSignup
-    ? `UrbanNest — আপনার ভেরিফিকেশন কোড: ${otp}`
-    : `UrbanNest — পাসওয়ার্ড রিসেট কোড: ${otp}`;
+    ? `UrbanNest — Your verification code: ${otp}`
+    : `UrbanNest — Password reset code: ${otp}`;
 
   const html = `
 <!DOCTYPE html>
@@ -28,12 +28,12 @@ export async function sendOtpEmail(
     </div>
     <div style="padding:32px 24px;">
       <h2 style="margin:0 0 8px;font-size:20px;color:#111;">
-        ${isSignup ? "ইমেইল ভেরিফিকেশন" : "পাসওয়ার্ড রিসেট"}
+        ${isSignup ? "Email Verification" : "Password Reset"}
       </h2>
       <p style="margin:0 0 24px;font-size:14px;color:#666;line-height:1.6;">
         ${isSignup
-          ? "আপনার UrbanNest অ্যাকাউন্ট অ্যাক্টিভেট করতে নিচের কোডটি ব্যবহার করুন।"
-          : "আপনার পাসওয়ার্ড রিসেট করতে নিচের কোডটি ব্যবহার করুন।"
+          ? "Use the code below to activate your UrbanNest account."
+          : "Use the code below to reset your password."
         }
       </p>
       <div style="background:#f0fbe4;border:2px dashed #66a80f;border-radius:12px;padding:20px;text-align:center;margin-bottom:24px;">
@@ -41,10 +41,10 @@ export async function sendOtpEmail(
         <p style="margin:0;font-size:36px;font-weight:800;color:#111;letter-spacing:8px;">${otp}</p>
       </div>
       <p style="margin:0 0 8px;font-size:13px;color:#999;">
-        ⏰ এই কোডটি <strong>${isSignup ? "১৫ মিনিট" : "১৫ মিনিট"}</strong> পর মেয়াদোত্তীর্ণ হবে।
+        ⏰ This code will expire in <strong>15 minutes</strong>.
       </p>
       <p style="margin:0;font-size:13px;color:#999;">
-        আপনি এই অনুরোধ না করলে, এই ইমেইলটি উপেক্ষা করুন।
+        If you didn't request this, please ignore this email.
       </p>
     </div>
     <div style="background:#f8f6f3;padding:16px 24px;text-align:center;">
