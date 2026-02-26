@@ -63,6 +63,7 @@ export default function AdminSettingsPage() {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState("");
   const logoInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -104,12 +105,17 @@ export default function AdminSettingsPage() {
     const files = e.target.files;
     if (!files || files.length === 0) return;
     setUploading(true);
+    setUploadError("");
     try {
       const urls = await uploadFiles(files);
       if (urls[0]) {
         setSettings((prev) => ({ ...prev, logo: urls[0] }));
+      } else {
+        setUploadError("আপলোড সফল হয়নি — কোনো URL পাওয়া যায়নি");
       }
     } catch (err) {
+      const msg = err instanceof Error ? err.message : "Upload failed";
+      setUploadError(msg);
       console.error("Logo upload failed:", err);
     } finally {
       setUploading(false);
@@ -214,6 +220,7 @@ export default function AdminSettingsPage() {
             </div>
           </div>
           <input ref={logoInputRef} type="file" accept="image/*" onChange={handleLogoUpload} className="hidden" />
+          {uploadError && <p className="text-xs text-red-500 mt-2">{uploadError}</p>}
         </div>
       </motion.div>
 

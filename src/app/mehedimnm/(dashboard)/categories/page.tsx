@@ -27,6 +27,7 @@ export default function AdminCategoriesPage() {
   const [image, setImage] = useState("");
   const [uploading, setUploading] = useState(false);
   const [saveError, setSaveError] = useState("");
+  const [uploadError, setUploadError] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const fetchCategories = useCallback(async () => {
@@ -49,10 +50,14 @@ export default function AdminCategoriesPage() {
     const files = e.target.files;
     if (!files || files.length === 0) return;
     setUploading(true);
+    setUploadError("");
     try {
       const urls = await uploadFiles(files);
       if (urls[0]) setImage(urls[0]);
+      else setUploadError("আপলোড সফল হয়নি — কোনো URL পাওয়া যায়নি");
     } catch (err) {
+      const msg = err instanceof Error ? err.message : "Upload failed";
+      setUploadError(msg);
       console.error("Upload failed:", err);
     } finally {
       setUploading(false);
@@ -201,6 +206,7 @@ export default function AdminCategoriesPage() {
                     </button>
                   )}
                   <input ref={fileInputRef} type="file" accept="image/*" onChange={handleUpload} className="hidden" />
+                  {uploadError && <p className="text-xs text-red-500 mt-1">{uploadError}</p>}
                 </div>
 
                 <div>

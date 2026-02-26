@@ -10,9 +10,15 @@ export async function uploadFiles(files: FileList | File[]): Promise<string[]> {
   // 1. Get signature from our server
   const sigRes = await fetch("/api/admin/upload-signature", { method: "POST" });
   if (!sigRes.ok) {
-    const errText = await sigRes.text().catch(() => "Unknown error");
-    console.error("Signature request failed:", sigRes.status, errText);
-    throw new Error(`Signature failed (${sigRes.status})`);
+    let errMsg = `Signature failed (${sigRes.status})`;
+    try {
+      const errData = await sigRes.json();
+      if (errData.error) errMsg = errData.error;
+    } catch {
+      // ignore parse error
+    }
+    console.error("Signature request failed:", sigRes.status, errMsg);
+    throw new Error(errMsg);
   }
 
   const sigData = await sigRes.json();

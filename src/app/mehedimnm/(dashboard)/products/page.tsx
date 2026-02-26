@@ -111,10 +111,14 @@ export default function AdminProductsPage() {
     const files = e.target.files;
     if (!files || files.length === 0) return;
     setUploading(true);
+    setSaveError("");
     try {
       const urls = await uploadFiles(files);
       if (urls.length) setImages((prev) => [...prev, ...urls]);
+      else setSaveError("আপলোড সফল হয়নি — কোনো URL পাওয়া যায়নি");
     } catch (err) {
+      const msg = err instanceof Error ? err.message : "Upload failed";
+      setSaveError(msg);
       console.error("Upload failed:", err);
     } finally {
       setUploading(false);

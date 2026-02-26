@@ -18,6 +18,23 @@ export async function POST() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    // Validate that Cloudinary env vars are set
+    const cloudName = process.env.CLOUDINARY_CLOUD_NAME;
+    const apiKey = process.env.CLOUDINARY_API_KEY;
+    const apiSecret = process.env.CLOUDINARY_API_SECRET;
+
+    if (!cloudName || !apiKey || !apiSecret) {
+      console.error("Missing Cloudinary env vars:", {
+        hasCloudName: !!cloudName,
+        hasApiKey: !!apiKey,
+        hasApiSecret: !!apiSecret,
+      });
+      return NextResponse.json(
+        { error: "Server misconfigured: Cloudinary credentials missing. Set CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET in Vercel environment variables." },
+        { status: 500 }
+      );
+    }
+
     const timestamp = Math.round(Date.now() / 1000);
     const folder = "urbannest/products";
 
@@ -27,15 +44,15 @@ export async function POST() {
         timestamp,
         folder,
       },
-      process.env.CLOUDINARY_API_SECRET!
+      apiSecret
     );
 
     return NextResponse.json({
       signature,
       timestamp,
       folder,
-      cloudName: process.env.CLOUDINARY_CLOUD_NAME,
-      apiKey: process.env.CLOUDINARY_API_KEY,
+      cloudName,
+      apiKey,
     });
   } catch (error) {
     console.error("Upload signature error:", error);
