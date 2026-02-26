@@ -1,38 +1,13 @@
 "use client";
 
-import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import Image from "next/image";
-import { ArrowRight, Loader2 } from "lucide-react";
-import type { Category } from "@/lib/data";
+import { ArrowRight } from "lucide-react";
+import { useStoreData } from "@/lib/store-data-context";
 
 export default function CategoriesPage() {
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    async function fetchCategories() {
-      try {
-        const res = await fetch("/api/categories", { cache: "no-store" });
-        const data = await res.json();
-        setCategories(data.categories || []);
-      } catch (err) {
-        console.error("Failed to fetch categories:", err);
-      } finally {
-        setLoading(false);
-      }
-    }
-    fetchCategories();
-  }, []);
-
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-[#66a80f]" />
-      </div>
-    );
-  }
+  const { categories } = useStoreData();
 
   return (
     <div className="min-h-screen">

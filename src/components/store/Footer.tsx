@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { motion } from "framer-motion";
@@ -17,6 +17,7 @@ import {
   ShieldCheck,
   Heart,
 } from "lucide-react";
+import { useStoreData } from "@/lib/store-data-context";
 
 const footerLinks = {
   shop: [
@@ -46,51 +47,22 @@ const trustFeatures = [
   { icon: Heart, label: "Made with Love", desc: "Curated collections" },
 ];
 
-interface StoreInfo {
-  storeName: string;
-  logo: string;
-  storeEmail: string;
-  phone: string;
-  address: string;
-  instagram: string;
-  facebook: string;
-  twitter: string;
-  freeShippingMin: number;
-}
-
 export default function Footer() {
   const [nlEmail, setNlEmail] = useState("");
   const [nlSubmitted, setNlSubmitted] = useState(false);
-  const [info, setInfo] = useState<StoreInfo>({
-    storeName: "UrbanNest",
-    logo: "",
-    storeEmail: "hello@urbannest.com.bd",
-    phone: "+880 1700-000000",
-    address: "Gulshan 2, Dhaka 1212",
-    instagram: "",
-    facebook: "",
-    twitter: "",
-    freeShippingMin: 7500,
-  });
+  const { settings } = useStoreData();
 
-  useEffect(() => {
-    fetch("/api/settings", { cache: "no-store" })
-      .then((r) => r.json())
-      .then((s) => {
-        setInfo({
-          storeName: s.storeName || "UrbanNest",
-          logo: s.logo || "",
-          storeEmail: s.storeEmail || "hello@urbannest.com.bd",
-          phone: s.phone || "+880 1700-000000",
-          address: s.address || "Gulshan 2, Dhaka 1212",
-          instagram: s.instagram || "",
-          facebook: s.facebook || "",
-          twitter: s.twitter || "",
-          freeShippingMin: s.freeShippingMin ?? 7500,
-        });
-      })
-      .catch(() => {});
-  }, []);
+  const info = {
+    storeName: settings.storeName || "UrbanNest",
+    logo: settings.logo || "",
+    storeEmail: settings.storeEmail || "hello@urbannest.com.bd",
+    phone: settings.phone || "+880 1700-000000",
+    address: settings.address || "Gulshan 2, Dhaka 1212",
+    instagram: settings.instagram || "",
+    facebook: settings.facebook || "",
+    twitter: settings.twitter || "",
+    freeShippingMin: settings.freeShippingMin ?? 7500,
+  };
 
   // Dynamic trust features with live freeShippingMin
   const dynamicTrust = trustFeatures.map((f) =>

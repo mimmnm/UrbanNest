@@ -8,7 +8,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Search, User, ShoppingBag, Heart, Menu, X, ChevronRight, LogIn, LogOut } from "lucide-react";
 import { useSession, signOut } from "next-auth/react";
 import { useCart } from "@/lib/cart-context";
-import type { Category } from "@/lib/data";
+import { useStoreData } from "@/lib/store-data-context";
 
 const navLinks = [
   { href: "/products", label: "Shop" },
@@ -18,19 +18,12 @@ const navLinks = [
   { href: "/contact", label: "Contact" },
 ];
 
-interface StoreInfo {
-  storeName: string;
-  logo: string;
-  freeShippingMin: number;
-}
-
 export default function Navbar() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [storeInfo, setStoreInfo] = useState<StoreInfo>({ storeName: "UrbanNest", logo: "", freeShippingMin: 7500 });
+  const { settings, categories } = useStoreData();
   const { totalItems } = useCart();
   const { data: session } = useSession();
   const pathname = usePathname();
@@ -41,30 +34,6 @@ export default function Navbar() {
     const handleScroll = () => setIsScrolled(window.scrollY > 20);
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
-
-  useEffect(() => {
-    async function fetchData() {
-      try {
-        const [catRes, settingsRes] = await Promise.all([
-          fetch("/api/categories", { cache: "no-store" }),
-          fetch("/api/settings", { cache: "no-store" }),
-        ]);
-        const catData = await catRes.json();
-        setCategories(catData.categories || []);
-        if (settingsRes.ok) {
-          const s = await settingsRes.json();
-          setStoreInfo({
-            storeName: s.storeName || "UrbanNest",
-            logo: s.logo || "",
-            freeShippingMin: s.freeShippingMin ?? 7500,
-          });
-        }
-      } catch (err) {
-        console.error("Failed to fetch data:", err);
-      }
-    }
-    fetchData();
   }, []);
 
   useEffect(() => {
@@ -80,15 +49,15 @@ export default function Navbar() {
   const closeMobile = useCallback(() => setIsMobileOpen(false), []);
 
   // Split store name for coloring
-  const nameParts = storeInfo.storeName.match(/^(Urban)(Nest)$/i);
-  const nameFirst = nameParts ? nameParts[1] : storeInfo.storeName;
+  const nameParts = settings.storeName.match(/^(Urban)(Nest)$/i);
+  const nameFirst = nameParts ? nameParts[1] : settings.storeName;
   const nameSecond = nameParts ? nameParts[2] : "";
 
   return (
     <>
       {/* Announcement Bar */}
       <div className="bg-[#111111] text-white text-center py-2 sm:py-2.5 px-4 text-[10px] sm:text-[11px] tracking-[0.15em] sm:tracking-[0.2em] uppercase font-display leading-relaxed">
-        Free shipping on orders over ৳{storeInfo.freeShippingMin.toLocaleString()} &mdash;{" "}
+        Free shipping on orders over ৳{settings.freeShippingMin.toLocaleString()} &mdash;{" "}
         <span className="font-accent text-[#66a80f] text-xs sm:text-sm normal-case tracking-normal">GLOW15</span>
       </div>
 
@@ -118,13 +87,13 @@ export default function Navbar() {
 
             {/* Center: Logo + Name */}
             <Link href="/" className="absolute left-1/2 -translate-x-1/2 shrink-0 flex items-center gap-2">
-              {storeInfo.logo && (
+              {settings.logo && (
                 <div className="relative w-8 h-8 sm:w-9 sm:h-9 rounded-lg overflow-hidden flex-shrink-0">
-                  <Image src={storeInfo.logo} alt="Logo" fill className="object-contain" sizes="36px" />
+                  <Image src={settings.logo} alt="Logo" fill className="object-contain" sizes="36px" />
                 </div>
               )}
               <h1 className="font-display text-[22px] sm:text-[26px] lg:text-[30px] font-semibold tracking-[0.03em] text-[#111111] whitespace-nowrap">
-                {nameSecond ? (<>{nameFirst}<span className="text-[#66a80f]">{nameSecond}</span></>) : storeInfo.storeName}
+                {nameSecond ? (<>{nameFirst}<span className="text-[#66a80f]">{nameSecond}</span></>) : settings.storeName}
               </h1>
             </Link>
 
