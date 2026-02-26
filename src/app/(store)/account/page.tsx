@@ -1,152 +1,208 @@
 "use client";
 
-import { useSession, signOut } from "next-auth/react";
-import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
+import Link from "next/link";
 import Image from "next/image";
-import { User, Package, Heart, Settings, LogOut, Mail } from "lucide-react";
+import { Package, MapPin, Phone, Calendar, ChevronRight, AlertTriangle } from "lucide-react";
+import { formatPrice } from "@/lib/utils";
 
-export default function AccountPage() {
-  const { data: session, status } = useSession();
-  const router = useRouter();
+interface OrderSummary {
+  orderId: string;
+  total: number;
+  status: string;
+  createdAt: string;
+  items: { name: string; image: string; quantity: number }[];
+}
 
-  const handleSignOut = async () => {
-    await signOut({ redirect: false });
-    router.push("/");
-    router.refresh();
-  };
+interface ProfileData {
+  name: string;
+  email: string;
+  phone: string;
+  avatar: string;
+  address: string;
+  city: string;
+  district: string;
+  createdAt: string;
+}
 
-  if (status === "loading") {
+export default function AccountOverviewPage() {
+  const { data: session } = useSession();
+  const [profile, setProfile] = useState<ProfileData | null>(null);
+  const [recentOrders, setRecentOrders] = useState<OrderSummary[]>([]);
+  const [orderStats, setOrderStats] = useState({ total: 0, pending: 0, delivered: 0, totalSpent: 0 });
+  const [loading, setLoading] = useState(true);
+  const [phoneWarning, setPhoneWarning] = useState(false);
+
+  useEffect(() => {
+    async function load() {
+      try {
+        const [profileRes, ordersRes] = await Promise.all([
+          fetch("/api/user/profile"),
+          fetch("/api/user/orders"),
+        ]);
+        if (profileRes.ok) {
+          const pd = await profileRes.json();
+          setProfile(pd.user);
+          if (!pd.user.phone) setPhoneWarning(true);
+        }
+        if (ordersRes.ok) {
+          const od = await ordersRes.json();
+          const orders = od.orders || [];
+          setRecentOrders(orders.slice(0, 3));
+          setOrderStats({
+            total: orders.length,
+            pending: orders.filter((o: OrderSummary) => o.status === "pending" || o.status === "processing").length,
+            delivered: orders.filter((o: OrderSummary) => o.status === "delivered").length,
+            totalSpent: orders.reduce((s: number, o: OrderSummary) => s + o.total, 0),
+          });
+        }
+      } catch (err) {
+        console.error("Failed to load account data:", err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    load();
+  }, []);
+
+  if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="w-8 h-8 border-2 border-[#66a80f]/30 border-t-[#66a80f] rounded-full animate-spin" />
+      <div className="flex items-center justify-center h-64">
+        <div className="w-7 h-7 border-2 border-[#66a80f]/30 border-t-[#66a80f] rounded-full animate-spin" />
       </div>
     );
   }
 
-  if (!session?.user) {
-    router.push("/login");
-    return null;
-  }
-
-  const user = session.user;
+  const statusColors: Record<string, string> = {
+    pending: "bg-amber-100 text-amber-700",
+    processing: "bg-blue-100 text-blue-700",
+    shipped: "bg-purple-100 text-purple-700",
+    delivered: "bg-emerald-100 text-emerald-700",
+    cancelled: "bg-red-100 text-red-700",
+  };
 
   return (
-    <div className="min-h-screen">
-      <div className="max-w-7xl mx-auto px-5 sm:px-8 py-14">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
+    <div className="space-y-5">
+      {/* Phone warning */}
+      {phoneWarning && (
+        <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}
+          className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-start gap-3"
         >
-          <p className="font-accent text-[#66a80f] text-base mb-1">welcome back</p>
-          <h1 className="font-display text-3xl font-semibold text-[#111111] mb-2">
-            My Account
-          </h1>
-          <p className="text-sm text-[#a1a1aa] font-display mb-10">
-            Manage your account settings and view orders
-          </p>
+          <AlertTriangle size={18} className="text-amber-500 mt-0.5 shrink-0" />
+          <div className="flex-1">
+            <p className="text-sm font-medium text-amber-800">মোবাইল নম্বর যোগ করুন</p>
+            <p className="text-xs text-amber-600 mt-0.5">অর্ডার ডেলিভারির জন্য আপনার মোবাইল নম্বর আবশ্যক।</p>
+          </div>
+          <Link href="/account/settings" className="text-xs font-medium text-amber-700 hover:text-amber-900 underline shrink-0">
+            Update
+          </Link>
         </motion.div>
+      )}
 
-        <div className="grid lg:grid-cols-4 gap-8">
-          {/* Sidebar */}
-          <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.2 }}
+      {/* Stats Grid */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        {[
+          { label: "Total Orders", value: orderStats.total, color: "text-[#66a80f]" },
+          { label: "Pending", value: orderStats.pending, color: "text-amber-600" },
+          { label: "Delivered", value: orderStats.delivered, color: "text-emerald-600" },
+          { label: "Total Spent", value: formatPrice(orderStats.totalSpent), color: "text-blue-600" },
+        ].map((stat, i) => (
+          <motion.div key={stat.label} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
+            className="bg-white rounded-xl border border-[#d4e8c2]/40 p-4"
           >
-            {/* User Avatar Card */}
-            <div className="bg-white rounded-2xl border border-[#d4e8c2]/40 p-6 mb-4 text-center">
-              <div className="w-20 h-20 mx-auto rounded-full bg-[#e8f5d6] flex items-center justify-center mb-3 overflow-hidden">
-                {user.image ? (
-                  <Image src={user.image} alt={user.name || ""} width={80} height={80} className="w-20 h-20 rounded-full object-cover" />
-                ) : (
-                  <span className="font-display text-2xl font-bold text-[#66a80f]">
-                    {user.name?.charAt(0)?.toUpperCase() || "U"}
-                  </span>
-                )}
-              </div>
-              <h3 className="font-display text-sm font-semibold text-[#111111]">
-                {user.name || "User"}
-              </h3>
-              <p className="text-xs text-[#a1a1aa] mt-0.5">{user.email}</p>
-            </div>
-
-            <div className="bg-white rounded-2xl border border-[#d4e8c2]/40 p-3">
-              <nav className="space-y-1">
-                {[
-                  { icon: User, label: "Profile", active: true, href: "/account" },
-                  { icon: Package, label: "Orders", href: "/account" },
-                  { icon: Heart, label: "Wishlist", href: "/wishlist" },
-                  { icon: Settings, label: "Settings", href: "/account" },
-                ].map((item) => (
-                  <button
-                    key={item.label}
-                    onClick={() => router.push(item.href)}
-                    className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-xl font-display text-sm transition-colors duration-200 ${
-                      item.active
-                        ? "bg-[#111111] text-white"
-                        : "text-[#111111]/70 hover:bg-[#f8f6f3]"
-                    }`}
-                  >
-                    <item.icon size={18} />
-                    {item.label}
-                  </button>
-                ))}
-                <button
-                  onClick={handleSignOut}
-                  className="w-full flex items-center gap-3 px-4 py-3.5 rounded-xl font-display text-sm text-red-500 hover:bg-red-50 transition-colors"
-                >
-                  <LogOut size={18} />
-                  Sign Out
-                </button>
-              </nav>
-            </div>
+            <p className="text-[11px] font-display text-[#a1a1aa] uppercase tracking-wider mb-1">{stat.label}</p>
+            <p className={`font-display text-xl font-bold ${stat.color}`}>{stat.value}</p>
           </motion.div>
+        ))}
+      </div>
 
-          {/* Content */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 }}
-            className="lg:col-span-3"
-          >
-            <div className="bg-white rounded-2xl border border-[#d4e8c2]/40 p-8">
-              <h2 className="font-display text-lg font-semibold text-[#111111] mb-7">
-                Profile Information
-              </h2>
-
-              <div className="space-y-5">
-                {/* Name */}
-                <div className="flex items-start gap-4 p-4 bg-[#f8f6f3] rounded-xl">
-                  <div className="w-10 h-10 rounded-lg bg-[#e8f5d6] flex items-center justify-center shrink-0">
-                    <User size={18} className="text-[#66a80f]" />
-                  </div>
-                  <div>
-                    <p className="text-xs font-display text-[#a1a1aa] uppercase tracking-wider mb-1">Full Name</p>
-                    <p className="font-display text-sm font-medium text-[#111111]">
-                      {user.name || "Not set"}
-                    </p>
-                  </div>
-                </div>
-
-                {/* Email */}
-                <div className="flex items-start gap-4 p-4 bg-[#f8f6f3] rounded-xl">
-                  <div className="w-10 h-10 rounded-lg bg-[#e8f5d6] flex items-center justify-center shrink-0">
-                    <Mail size={18} className="text-[#66a80f]" />
-                  </div>
-                  <div>
-                    <p className="text-xs font-display text-[#a1a1aa] uppercase tracking-wider mb-1">Email Address</p>
-                    <p className="font-display text-sm font-medium text-[#111111]">
-                      {user.email || "Not set"}
-                    </p>
-                  </div>
-                </div>
-
-
-              </div>
-            </div>
-          </motion.div>
+      {/* Quick Info */}
+      <div className="bg-white rounded-2xl border border-[#d4e8c2]/40 p-5 md:p-6">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="font-display text-base font-semibold text-[#111111]">Profile Summary</h2>
+          <Link href="/account/settings" className="text-xs font-display text-[#66a80f] hover:underline">Edit</Link>
         </div>
+        <div className="grid sm:grid-cols-2 gap-3">
+          <div className="flex items-center gap-3 p-3 bg-[#f8f6f3] rounded-xl">
+            <Phone size={16} className="text-[#66a80f] shrink-0" />
+            <div>
+              <p className="text-[10px] font-display text-[#a1a1aa] uppercase tracking-wider">Phone</p>
+              <p className="text-sm font-display text-[#111111]">{profile?.phone || "Not set"}</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-3 p-3 bg-[#f8f6f3] rounded-xl">
+            <MapPin size={16} className="text-[#66a80f] shrink-0" />
+            <div>
+              <p className="text-[10px] font-display text-[#a1a1aa] uppercase tracking-wider">Address</p>
+              <p className="text-sm font-display text-[#111111] truncate">
+                {[profile?.address, profile?.city, profile?.district].filter(Boolean).join(", ") || "Not set"}
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-3 p-3 bg-[#f8f6f3] rounded-xl">
+            <Calendar size={16} className="text-[#66a80f] shrink-0" />
+            <div>
+              <p className="text-[10px] font-display text-[#a1a1aa] uppercase tracking-wider">Member Since</p>
+              <p className="text-sm font-display text-[#111111]">
+                {profile?.createdAt ? new Date(profile.createdAt).toLocaleDateString("en-GB", { month: "long", year: "numeric" }) : "—"}
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Recent Orders */}
+      <div className="bg-white rounded-2xl border border-[#d4e8c2]/40 p-5 md:p-6">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="font-display text-base font-semibold text-[#111111]">Recent Orders</h2>
+          <Link href="/account/orders" className="flex items-center gap-1 text-xs font-display text-[#66a80f] hover:underline">
+            View All <ChevronRight size={14} />
+          </Link>
+        </div>
+        {recentOrders.length === 0 ? (
+          <div className="text-center py-10">
+            <Package size={32} className="mx-auto text-[#d4e8c2] mb-3" />
+            <p className="text-sm text-[#a1a1aa] font-display">No orders yet</p>
+            <Link href="/products" className="inline-block mt-3 text-xs font-display text-[#66a80f] hover:underline">
+              Start Shopping
+            </Link>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {recentOrders.map((order) => (
+              <div key={order.orderId} className="flex items-center gap-4 p-3 bg-[#f8f6f3] rounded-xl">
+                <div className="flex -space-x-2">
+                  {order.items.slice(0, 3).map((item, idx) => (
+                    <div key={idx} className="w-10 h-10 rounded-lg overflow-hidden border-2 border-white bg-white">
+                      {item.image ? (
+                        <Image src={item.image} alt={item.name} width={40} height={40} className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="w-full h-full bg-[#e8f5d6] flex items-center justify-center text-[8px] font-display text-[#66a80f]">
+                          {item.name.charAt(0)}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-display text-sm font-medium text-[#111111]">{order.orderId}</p>
+                  <p className="text-[11px] text-[#a1a1aa]">
+                    {new Date(order.createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
+                    {" · "}{order.items.reduce((s, i) => s + i.quantity, 0)} items
+                  </p>
+                </div>
+                <div className="text-right">
+                  <span className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-display font-medium uppercase tracking-wider ${statusColors[order.status] || "bg-gray-100 text-gray-600"}`}>
+                    {order.status}
+                  </span>
+                  <p className="font-display text-sm font-semibold text-[#111111] mt-1">{formatPrice(order.total)}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

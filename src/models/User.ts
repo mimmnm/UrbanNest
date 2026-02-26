@@ -7,6 +7,12 @@ export interface IUser extends Document {
   password: string;
   phone?: string;
   avatar?: string;
+  address?: string;
+  city?: string;
+  district?: string;
+  zipCode?: string;
+  dateOfBirth?: string;
+  gender?: string;
   loginAttempts: number;
   lockUntil?: Date;
   createdAt: Date;
@@ -42,6 +48,12 @@ const UserSchema = new Schema<IUser>(
     },
     phone: { type: String, default: "" },
     avatar: { type: String, default: "" },
+    address: { type: String, default: "" },
+    city: { type: String, default: "" },
+    district: { type: String, default: "" },
+    zipCode: { type: String, default: "" },
+    dateOfBirth: { type: String, default: "" },
+    gender: { type: String, enum: ["", "male", "female", "other"], default: "" },
     loginAttempts: { type: Number, default: 0 },
     lockUntil: { type: Date },
   },
