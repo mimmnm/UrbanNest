@@ -48,8 +48,8 @@ function ProductsContent() {
         params.set("limit", "100");
         if (searchParam) params.set("search", searchParam);
         const [prodRes, catRes] = await Promise.all([
-          fetch(`/api/products?${params}`),
-          fetch("/api/categories"),
+          fetch(`/api/products?${params}`, { cache: "no-store" }),
+          fetch("/api/categories", { cache: "no-store" }),
         ]);
         if (!prodRes.ok || !catRes.ok) throw new Error("Failed to fetch");
         const prodData = await prodRes.json();

@@ -16,6 +16,7 @@ import {
   ImageIcon,
 } from "lucide-react";
 import { formatPrice } from "@/lib/utils";
+import { uploadFiles } from "@/lib/upload";
 
 interface ProductItem {
   id: string;
@@ -110,12 +111,9 @@ export default function AdminProductsPage() {
     const files = e.target.files;
     if (!files || files.length === 0) return;
     setUploading(true);
-    const formData = new FormData();
-    Array.from(files).forEach((f) => formData.append("files", f));
     try {
-      const res = await fetch("/api/admin/upload", { method: "POST", body: formData });
-      const data = await res.json();
-      if (data.urls) setImages((prev) => [...prev, ...data.urls]);
+      const urls = await uploadFiles(files);
+      if (urls.length) setImages((prev) => [...prev, ...urls]);
     } catch (err) {
       console.error("Upload failed:", err);
     } finally {

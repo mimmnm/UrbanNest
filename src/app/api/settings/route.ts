@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/mongodb";
 import { StoreSettings } from "@/models/StoreSettings";
 
+export const dynamic = "force-dynamic";
+
 // Public route — no auth required
 // Store frontend fetches settings from here
 export async function GET() {

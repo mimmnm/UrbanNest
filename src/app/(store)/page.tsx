@@ -70,9 +70,9 @@ export default function HomePage() {
     async function fetchData() {
       try {
         const [catRes, bsRes, naRes] = await Promise.all([
-          fetch("/api/categories"),
-          fetch("/api/products?filter=bestseller&limit=8"),
-          fetch("/api/products?filter=new&limit=8"),
+          fetch("/api/categories", { cache: "no-store" }),
+          fetch("/api/products?filter=bestseller&limit=8", { cache: "no-store" }),
+          fetch("/api/products?filter=new&limit=8", { cache: "no-store" }),
         ]);
         const catData = catRes.ok ? await catRes.json() : { categories: [] };
         const bsData = bsRes.ok ? await bsRes.json() : { products: [] };

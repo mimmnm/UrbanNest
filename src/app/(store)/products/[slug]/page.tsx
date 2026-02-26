@@ -24,7 +24,7 @@ export default function ProductDetailPage({ params }: { params: Promise<{ slug: 
   useEffect(() => {
     async function fetchProduct() {
       try {
-        const res = await fetch(`/api/products/${slug}`);
+        const res = await fetch(`/api/products/${slug}`, { cache: "no-store" });
         if (!res.ok) {
           setNotFound(true);
           setLoading(false);
@@ -35,7 +35,7 @@ export default function ProductDetailPage({ params }: { params: Promise<{ slug: 
 
         // Fetch related products
         if (data.product?.category) {
-          const relRes = await fetch(`/api/products?category=${data.product.category}&limit=4`);
+          const relRes = await fetch(`/api/products?category=${data.product.category}&limit=4`, { cache: "no-store" });
           const relData = await relRes.json();
           setRelatedProducts(
             (relData.products || []).filter((p: Product) => p.slug !== slug && p.id !== data.product.id).slice(0, 4)

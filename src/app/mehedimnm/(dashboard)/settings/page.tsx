@@ -15,6 +15,7 @@ import {
   X,
   ImageIcon,
 } from "lucide-react";
+import { uploadFiles } from "@/lib/upload";
 
 interface SettingsData {
   storeName: string;
@@ -103,13 +104,10 @@ export default function AdminSettingsPage() {
     const files = e.target.files;
     if (!files || files.length === 0) return;
     setUploading(true);
-    const formData = new FormData();
-    formData.append("files", files[0]);
     try {
-      const res = await fetch("/api/admin/upload", { method: "POST", body: formData });
-      const data = await res.json();
-      if (data.urls?.[0]) {
-        setSettings((prev) => ({ ...prev, logo: data.urls[0] }));
+      const urls = await uploadFiles(files);
+      if (urls[0]) {
+        setSettings((prev) => ({ ...prev, logo: urls[0] }));
       }
     } catch (err) {
       console.error("Logo upload failed:", err);

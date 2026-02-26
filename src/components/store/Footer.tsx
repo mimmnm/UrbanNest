@@ -74,7 +74,7 @@ export default function Footer() {
   });
 
   useEffect(() => {
-    fetch("/api/settings")
+    fetch("/api/settings", { cache: "no-store" })
       .then((r) => r.json())
       .then((s) => {
         setInfo({

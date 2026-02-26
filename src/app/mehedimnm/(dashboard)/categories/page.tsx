@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
 import { Plus, Edit, Trash2, X, Upload, Loader2, ImageIcon } from "lucide-react";
+import { uploadFiles } from "@/lib/upload";
 
 interface CategoryItem {
   id: string;
@@ -48,12 +49,9 @@ export default function AdminCategoriesPage() {
     const files = e.target.files;
     if (!files || files.length === 0) return;
     setUploading(true);
-    const formData = new FormData();
-    formData.append("files", files[0]);
     try {
-      const res = await fetch("/api/admin/upload", { method: "POST", body: formData });
-      const data = await res.json();
-      if (data.urls?.[0]) setImage(data.urls[0]);
+      const urls = await uploadFiles(files);
+      if (urls[0]) setImage(urls[0]);
     } catch (err) {
       console.error("Upload failed:", err);
     } finally {

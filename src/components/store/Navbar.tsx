@@ -47,8 +47,8 @@ export default function Navbar() {
     async function fetchData() {
       try {
         const [catRes, settingsRes] = await Promise.all([
-          fetch("/api/categories"),
-          fetch("/api/settings"),
+          fetch("/api/categories", { cache: "no-store" }),
+          fetch("/api/settings", { cache: "no-store" }),
         ]);
         const catData = await catRes.json();
         setCategories(catData.categories || []);
