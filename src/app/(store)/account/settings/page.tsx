@@ -9,6 +9,19 @@ import {
 } from "lucide-react";
 import { uploadUserAvatar } from "@/lib/user-upload";
 
+// Field component defined OUTSIDE the render to prevent re-mounting inputs on state change
+function Field({ label, icon: Icon, required, children }: { label: string; icon: React.ElementType; required?: boolean; children: React.ReactNode }) {
+  return (
+    <div>
+      <label className="flex items-center gap-1.5 text-xs font-display text-[#555] uppercase tracking-wider mb-2">
+        <Icon size={13} className="text-[#66a80f]" /> {label}
+        {required && <span className="text-red-500 text-sm">*</span>}
+      </label>
+      {children}
+    </div>
+  );
+}
+
 interface ProfileForm {
   name: string;
   phone: string;
@@ -118,6 +131,8 @@ export default function AccountSettingsPage() {
         setMessage({ type: "error", text: data.error || "Failed to save." });
       } else {
         setMessage({ type: "success", text: "Profile updated successfully!" });
+        // Notify layout to refresh sidebar profile data
+        window.dispatchEvent(new Event("profile-updated"));
         if (showPasswordSection && newPassword) {
           setCurrentPassword("");
           setNewPassword("");
@@ -139,16 +154,6 @@ export default function AccountSettingsPage() {
       </div>
     );
   }
-
-  const Field = ({ label, icon: Icon, required, children }: { label: string; icon: React.ElementType; required?: boolean; children: React.ReactNode }) => (
-    <div>
-      <label className="flex items-center gap-1.5 text-xs font-display text-[#555] uppercase tracking-wider mb-2">
-        <Icon size={13} className="text-[#66a80f]" /> {label}
-        {required && <span className="text-red-500 text-sm">*</span>}
-      </label>
-      {children}
-    </div>
-  );
 
   const inputCls = "w-full bg-[#f8f6f3] border border-[#d4e8c2]/40 rounded-xl px-4 py-3 text-sm font-display text-[#111] placeholder:text-[#b5b5b5] focus:outline-none focus:ring-2 focus:ring-[#66a80f]/30 transition";
 

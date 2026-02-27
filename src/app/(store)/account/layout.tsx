@@ -1,13 +1,14 @@
 "use client";
 
-import { useSession } from "next-auth/react";
+import { useSession, signOut } from "next-auth/react";
 import { useRouter, usePathname } from "next/navigation";
 import { motion } from "framer-motion";
 import Image from "next/image";
 import Link from "next/link";
 import { User, Package, Heart, Settings, LogOut, LayoutDashboard } from "lucide-react";
-import { signOut } from "next-auth/react";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
+import { useCart } from "@/lib/cart-context";
+import { useWishlist } from "@/lib/wishlist-context";
 
 const navItems = [
   { icon: LayoutDashboard, label: "Overview", href: "/account" },
@@ -20,9 +21,11 @@ export default function AccountLayout({ children }: { children: React.ReactNode 
   const { data: session, status } = useSession();
   const router = useRouter();
   const pathname = usePathname();
-  const [profile, setProfile] = useState<{ avatar?: string; phone?: string } | null>(null);
+  const [profile, setProfile] = useState<{ name?: string; avatar?: string; phone?: string } | null>(null);
+  const { clearCart } = useCart();
+  const { clearAll: clearWishlist } = useWishlist();
 
-  useEffect(() => {
+  const fetchProfile = useCallback(() => {
     fetch("/api/user/profile")
       .then((r) => (r.ok ? r.json() : null))
       .then((data) => {
@@ -31,10 +34,21 @@ export default function AccountLayout({ children }: { children: React.ReactNode 
       .catch(() => {});
   }, []);
 
+  useEffect(() => {
+    fetchProfile();
+  }, [fetchProfile]);
+
+  // Listen for profile updates from settings page
+  useEffect(() => {
+    const handler = () => fetchProfile();
+    window.addEventListener("profile-updated", handler);
+    return () => window.removeEventListener("profile-updated", handler);
+  }, [fetchProfile]);
+
   const handleSignOut = async () => {
-    await signOut({ redirect: false });
-    router.push("/");
-    router.refresh();
+    clearCart();
+    clearWishlist();
+    await signOut({ callbackUrl: "/" });
   };
 
   if (status === "loading") {
@@ -51,6 +65,7 @@ export default function AccountLayout({ children }: { children: React.ReactNode 
   }
 
   const user = session.user;
+  const displayName = profile?.name || user.name;
   const avatarUrl = profile?.avatar || user.image;
 
   return (
@@ -81,7 +96,7 @@ export default function AccountLayout({ children }: { children: React.ReactNode 
                   </span>
                 )}
               </div>
-              <h3 className="font-display text-sm font-semibold text-[#111111]">{user.name || "User"}</h3>
+              <h3 className="font-display text-sm font-semibold text-[#111111]">{displayName || "User"}</h3>
               <p className="text-xs text-[#a1a1aa] mt-0.5">{user.email}</p>
               {profile?.phone && (
                 <p className="text-xs text-[#a1a1aa] mt-0.5">{profile.phone}</p>

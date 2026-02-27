@@ -8,6 +8,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Search, User, ShoppingBag, Heart, Menu, X, ChevronRight, LogIn, LogOut } from "lucide-react";
 import { useSession, signOut } from "next-auth/react";
 import { useCart } from "@/lib/cart-context";
+import { useWishlist } from "@/lib/wishlist-context";
 import { useStoreData } from "@/lib/store-data-context";
 
 const navLinks = [
@@ -24,7 +25,8 @@ export default function Navbar() {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const { settings, categories } = useStoreData();
-  const { totalItems } = useCart();
+  const { totalItems, clearCart } = useCart();
+  const { clearAll: clearWishlist } = useWishlist();
   const { data: session } = useSession();
   const pathname = usePathname();
   const router = useRouter();
@@ -179,7 +181,7 @@ export default function Navbar() {
                             {badge ? <span className="w-5 h-5 bg-[#66a80f] text-white text-[10px] font-bold flex items-center justify-center rounded-full">{badge}</span> : null}
                           </Link>
                         ))}
-                        <button onClick={() => { closeMobile(); signOut(); }} className="flex items-center gap-3 py-3 text-sm font-display text-red-500 hover:text-red-600 transition-colors w-full">
+                        <button onClick={() => { closeMobile(); clearCart(); clearWishlist(); signOut({ callbackUrl: "/" }); }} className="flex items-center gap-3 py-3 text-sm font-display text-red-500 hover:text-red-600 transition-colors w-full">
                           <LogOut size={18} strokeWidth={1.5} />Sign Out
                         </button>
                       </>
