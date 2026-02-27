@@ -15,6 +15,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const userId = (session.user as Record<string, unknown>).id as string;
+    if (!userId) {
+      return NextResponse.json(
+        { error: "Session error. Please sign out and sign in again." },
+        { status: 401 }
+      );
+    }
+
     await connectDB();
 
     const body = await request.json();
@@ -30,9 +38,21 @@ export async function POST(request: NextRequest) {
     // Use authenticated user's email (prevent spoofing)
     const email = session.user.email.toLowerCase();
 
-    // Generate order ID
-    const count = await Order.countDocuments();
-    const orderId = `ORD-${String(count + 1).padStart(4, "0")}`;
+    // Generate unique order ID with retry (prevents race condition)
+    let orderId = "";
+    for (let attempt = 0; attempt < 5; attempt++) {
+      const count = await Order.countDocuments();
+      const candidate = `ORD-${String(count + 1 + attempt).padStart(4, "0")}`;
+      const exists = await Order.findOne({ orderId: candidate }).lean();
+      if (!exists) {
+        orderId = candidate;
+        break;
+      }
+    }
+    if (!orderId) {
+      // Fallback: use timestamp-based ID
+      orderId = `ORD-${Date.now().toString(36).toUpperCase()}`;
+    }
 
     // Calculate totals and validate products
     let subtotal = 0;
@@ -61,8 +81,9 @@ export async function POST(request: NextRequest) {
 
     const order = await Order.create({
       orderId,
+      userId,
       customer,
-      email: email.toLowerCase(),
+      email,
       phone: phone || "",
       shippingAddress: shippingAddress || "",
       items: orderItems,

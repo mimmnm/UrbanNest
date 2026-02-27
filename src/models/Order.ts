@@ -12,6 +12,7 @@ export interface IOrderItem {
 
 export interface IOrder extends Document {
   orderId: string;
+  userId: string;
   customer: string;
   email: string;
   phone: string;
@@ -44,6 +45,7 @@ const OrderItemSchema = new Schema<IOrderItem>(
 const OrderSchema = new Schema<IOrder>(
   {
     orderId: { type: String, required: true, unique: true },
+    userId: { type: String, required: true, index: true },
     customer: { type: String, required: [true, "Customer name is required"], trim: true },
     email: { type: String, required: true, lowercase: true, trim: true },
     phone: { type: String, default: "" },
@@ -69,6 +71,7 @@ const OrderSchema = new Schema<IOrder>(
 );
 
 OrderSchema.index({ orderId: 1 });
+OrderSchema.index({ userId: 1, createdAt: -1 });
 OrderSchema.index({ status: 1 });
 OrderSchema.index({ email: 1 });
 OrderSchema.index({ createdAt: -1 });

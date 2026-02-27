@@ -81,11 +81,13 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       // For OAuth providers, upsert user in MongoDB
       if (account?.provider === "google" || account?.provider === "facebook") {
         await connectDB();
-        const existingUser = await User.findOne({ email: user.email });
+        const email = user.email?.toLowerCase();
+        if (!email) return false;
+        const existingUser = await User.findOne({ email });
         if (!existingUser) {
           await User.create({
             name: user.name,
-            email: user.email,
+            email,
             password: "",
             avatar: user.image || "",
             isVerified: true,
@@ -96,9 +98,13 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     },
     async jwt({ token, user, account }) {
       if (user) {
+        // Ensure email is always lowercase in token
+        if (user.email) {
+          token.email = user.email.toLowerCase();
+        }
         if (account?.provider === "google" || account?.provider === "facebook") {
           await connectDB();
-          const dbUser = await User.findOne({ email: user.email });
+          const dbUser = await User.findOne({ email: user.email?.toLowerCase() });
           token.id = dbUser?._id?.toString() || user.id;
         } else {
           token.id = user.id;

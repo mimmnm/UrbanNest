@@ -9,7 +9,7 @@ export const dynamic = "force-dynamic";
 async function getSessionUser() {
   const session = await auth();
   if (!session?.user?.email) return null;
-  return session.user;
+  return { ...session.user, email: session.user.email.toLowerCase() };
 }
 
 // GET user profile
@@ -44,6 +44,11 @@ export async function GET() {
         dateOfBirth: user.dateOfBirth || "",
         gender: user.gender || "",
         createdAt: user.createdAt,
+      },
+    }, {
+      headers: {
+        "Cache-Control": "no-store, no-cache, must-revalidate",
+        "Pragma": "no-cache",
       },
     });
   } catch (error) {
