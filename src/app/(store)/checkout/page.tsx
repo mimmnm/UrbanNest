@@ -1,6 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import Image from "next/image";
 import Link from "next/link";
@@ -15,6 +17,8 @@ function getProductImage(product: { image?: string; images?: string[] }): string
 }
 
 export default function CheckoutPage() {
+  const { data: session, status: authStatus } = useSession();
+  const router = useRouter();
   const { items, totalPrice, clearCart } = useCart();
   const [step, setStep] = useState(1);
   const [orderPlaced, setOrderPlaced] = useState(false);
@@ -32,6 +36,44 @@ export default function CheckoutPage() {
   const [district, setDistrict] = useState("");
   const [zip, setZip] = useState("");
   const [paymentMethod, setPaymentMethod] = useState<"cod" | "card">("cod");
+  const [profileLoaded, setProfileLoaded] = useState(false);
+
+  // Auto-fill from user profile
+  useEffect(() => {
+    if (authStatus !== "authenticated" || profileLoaded) return;
+    fetch("/api/user/profile")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (data?.user) {
+          const u = data.user;
+          const nameParts = (u.name || "").trim().split(/\s+/);
+          if (!firstName) setFirstName(nameParts[0] || "");
+          if (!lastName) setLastName(nameParts.slice(1).join(" ") || "");
+          if (!email) setEmail(u.email || "");
+          if (!phone) setPhone(u.phone || "");
+          if (!address) setAddress(u.address || "");
+          if (!city) setCity(u.city || "");
+          if (!district) setDistrict(u.district || "");
+          if (!zip) setZip(u.zipCode || "");
+        }
+      })
+      .catch(() => {})
+      .finally(() => setProfileLoaded(true));
+  }, [authStatus, profileLoaded, firstName, lastName, email, phone, address, city, district, zip]);
+
+  // Redirect to login if not authenticated
+  if (authStatus === "loading") {
+    return (
+      <div className="min-h-[70vh] flex items-center justify-center">
+        <div className="w-8 h-8 border-2 border-[#66a80f]/30 border-t-[#66a80f] rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  if (authStatus === "unauthenticated") {
+    router.push("/login");
+    return null;
+  }
 
   if (orderPlaced) {
     return (
@@ -134,7 +176,6 @@ export default function CheckoutPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           customer: fullName,
-          email: email.trim().toLowerCase(),
           phone: phone.trim(),
           shippingAddress,
           items: orderItems,

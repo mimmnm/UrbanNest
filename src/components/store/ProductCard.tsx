@@ -2,9 +2,11 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { Heart, ShoppingBag, Star, Check } from "lucide-react";
 import { useState } from "react";
+import { useSession } from "next-auth/react";
 import type { Product } from "@/lib/data";
 import { useCart } from "@/lib/cart-context";
 import { useWishlist } from "@/lib/wishlist-context";
@@ -18,6 +20,8 @@ interface ProductCardProps {
 export default function ProductCard({ product, index = 0 }: ProductCardProps) {
   const { addItem } = useCart();
   const { toggleItem, isInWishlist } = useWishlist();
+  const { data: session } = useSession();
+  const router = useRouter();
   const [added, setAdded] = useState(false);
   const wishlisted = isInWishlist(product.id);
   const discount =
@@ -115,6 +119,10 @@ export default function ProductCard({ product, index = 0 }: ProductCardProps) {
             onClick={(e) => {
               e.preventDefault();
               e.stopPropagation();
+              if (!session?.user) {
+                router.push("/login");
+                return;
+              }
               toggleItem(product);
             }}
             className={`w-11 bg-white/95 backdrop-blur-sm rounded-xl flex items-center justify-center transition-colors duration-300 ${

@@ -3,10 +3,13 @@
 import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { Star, Minus, Plus, Heart, Share2, ChevronRight, Truck, RotateCcw, ShieldCheck } from "lucide-react";
 import { formatPrice } from "@/lib/utils";
 import { useCart } from "@/lib/cart-context";
+import { useWishlist } from "@/lib/wishlist-context";
+import { useSession } from "next-auth/react";
 import ProductCard from "@/components/store/ProductCard";
 import type { Product } from "@/lib/data";
 
@@ -17,9 +20,13 @@ interface Props {
 
 export default function ProductDetailClient({ product, relatedProducts }: Props) {
   const { addItem } = useCart();
+  const { toggleItem, isInWishlist } = useWishlist();
+  const { data: session } = useSession();
+  const router = useRouter();
   const [qty, setQty] = useState(1);
   const [added, setAdded] = useState(false);
   const [selectedImage, setSelectedImage] = useState(0);
+  const wishlisted = isInWishlist(product.id);
 
   const images = product.images && product.images.length > 0 ? product.images : [product.image];
 
@@ -130,8 +137,17 @@ export default function ProductDetailClient({ product, relatedProducts }: Props)
             </div>
 
             <div className="flex items-center gap-5 mb-10">
-              <button className="flex items-center gap-2 font-display text-xs text-[#a1a1aa] hover:text-[#66a80f] transition-colors">
-                <Heart size={16} /> Wishlist
+              <button
+                onClick={() => {
+                  if (!session?.user) {
+                    router.push("/login");
+                    return;
+                  }
+                  toggleItem(product);
+                }}
+                className={`flex items-center gap-2 font-display text-xs transition-colors ${wishlisted ? "text-red-500" : "text-[#a1a1aa] hover:text-[#66a80f]"}`}
+              >
+                <Heart size={16} className={wishlisted ? "fill-current" : ""} /> {wishlisted ? "In Wishlist" : "Add to Wishlist"}
               </button>
               <button className="flex items-center gap-2 font-display text-xs text-[#a1a1aa] hover:text-[#66a80f] transition-colors">
                 <Share2 size={16} /> Share

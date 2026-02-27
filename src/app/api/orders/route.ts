@@ -1,21 +1,34 @@
 import { NextRequest, NextResponse } from "next/server";
+import { auth } from "@/lib/auth";
 import { connectDB } from "@/lib/mongodb";
 import { Order } from "@/models/Order";
 import { Product } from "@/models/Product";
 
 export async function POST(request: NextRequest) {
   try {
+    // Require authentication
+    const session = await auth();
+    if (!session?.user?.email) {
+      return NextResponse.json(
+        { error: "Please sign in to place an order" },
+        { status: 401 }
+      );
+    }
+
     await connectDB();
 
     const body = await request.json();
-    const { customer, email, phone, shippingAddress, items, paymentMethod } = body;
+    const { customer, phone, shippingAddress, items, paymentMethod } = body;
 
-    if (!customer || !email || !items || items.length === 0) {
+    if (!customer || !items || items.length === 0) {
       return NextResponse.json(
-        { error: "Customer name, email, and at least one item are required" },
+        { error: "Customer name and at least one item are required" },
         { status: 400 }
       );
     }
+
+    // Use authenticated user's email (prevent spoofing)
+    const email = session.user.email.toLowerCase();
 
     // Generate order ID
     const count = await Order.countDocuments();

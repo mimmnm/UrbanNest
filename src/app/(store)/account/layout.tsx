@@ -7,8 +7,6 @@ import Image from "next/image";
 import Link from "next/link";
 import { User, Package, Heart, Settings, LogOut, LayoutDashboard } from "lucide-react";
 import { useEffect, useState, useCallback } from "react";
-import { useCart } from "@/lib/cart-context";
-import { useWishlist } from "@/lib/wishlist-context";
 
 const navItems = [
   { icon: LayoutDashboard, label: "Overview", href: "/account" },
@@ -22,8 +20,6 @@ export default function AccountLayout({ children }: { children: React.ReactNode 
   const router = useRouter();
   const pathname = usePathname();
   const [profile, setProfile] = useState<{ name?: string; avatar?: string; phone?: string } | null>(null);
-  const { clearCart } = useCart();
-  const { clearAll: clearWishlist } = useWishlist();
 
   const fetchProfile = useCallback(() => {
     fetch("/api/user/profile")
@@ -46,8 +42,6 @@ export default function AccountLayout({ children }: { children: React.ReactNode 
   }, [fetchProfile]);
 
   const handleSignOut = async () => {
-    clearCart();
-    clearWishlist();
     await signOut({ callbackUrl: "/" });
   };
 

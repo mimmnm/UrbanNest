@@ -1,6 +1,7 @@
 "use client";
 
-import { createContext, useContext, useState, useCallback, useEffect, ReactNode } from "react";
+import { createContext, useContext, useState, useCallback, useEffect, useRef, ReactNode } from "react";
+import { useSession } from "next-auth/react";
 import type { Product } from "@/lib/data";
 
 interface WishlistContextType {
@@ -15,10 +16,14 @@ interface WishlistContextType {
 
 const WishlistContext = createContext<WishlistContextType | undefined>(undefined);
 
-function loadWishlistFromStorage(): Product[] {
+function getWishlistKey(email?: string | null): string {
+  return email ? `urbannest_wishlist_${email}` : "urbannest_wishlist_guest";
+}
+
+function loadWishlistFromStorage(key: string): Product[] {
   if (typeof window === "undefined") return [];
   try {
-    const saved = localStorage.getItem("urbannest_wishlist");
+    const saved = localStorage.getItem(key);
     return saved ? JSON.parse(saved) : [];
   } catch {
     return [];
@@ -26,15 +31,38 @@ function loadWishlistFromStorage(): Product[] {
 }
 
 export function WishlistProvider({ children }: { children: ReactNode }) {
-  const [items, setItems] = useState<Product[]>(loadWishlistFromStorage);
+  const { data: session, status } = useSession();
+  const userEmail = session?.user?.email;
+  const storageKey = getWishlistKey(userEmail);
 
+  const [items, setItems] = useState<Product[]>([]);
+
+  // Load wishlist when session/key changes
   useEffect(() => {
+    if (status === "loading") return;
+    const loaded = loadWishlistFromStorage(storageKey);
+    setItems(loaded);
+  }, [storageKey, status]);
+
+  // Persist wishlist to localStorage on every change
+  const isInitialLoad = useRef(true);
+  useEffect(() => {
+    if (status === "loading") return;
+    if (isInitialLoad.current) {
+      isInitialLoad.current = false;
+      return;
+    }
     try {
-      localStorage.setItem("urbannest_wishlist", JSON.stringify(items));
+      localStorage.setItem(storageKey, JSON.stringify(items));
     } catch {
       // localStorage full or unavailable
     }
-  }, [items]);
+  }, [items, storageKey, status]);
+
+  // Reset initial load flag when key changes
+  useEffect(() => {
+    isInitialLoad.current = true;
+  }, [storageKey]);
 
   const addItem = useCallback((product: Product) => {
     setItems((prev) => {

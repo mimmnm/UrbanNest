@@ -1,6 +1,7 @@
 "use client";
 
-import { createContext, useContext, useState, useCallback, useEffect, ReactNode } from "react";
+import { createContext, useContext, useState, useCallback, useEffect, useRef, ReactNode } from "react";
+import { useSession } from "next-auth/react";
 import { Product, CartItem } from "@/lib/types";
 
 interface CartContextType {
@@ -15,10 +16,14 @@ interface CartContextType {
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
-function loadCartFromStorage(): CartItem[] {
+function getCartKey(email?: string | null): string {
+  return email ? `urbannest_cart_${email}` : "urbannest_cart_guest";
+}
+
+function loadCartFromStorage(key: string): CartItem[] {
   if (typeof window === "undefined") return [];
   try {
-    const saved = localStorage.getItem("urbannest_cart");
+    const saved = localStorage.getItem(key);
     return saved ? JSON.parse(saved) : [];
   } catch {
     return [];
@@ -26,16 +31,40 @@ function loadCartFromStorage(): CartItem[] {
 }
 
 export function CartProvider({ children }: { children: ReactNode }) {
-  const [items, setItems] = useState<CartItem[]>(loadCartFromStorage);
+  const { data: session, status } = useSession();
+  const userEmail = session?.user?.email;
+  const storageKey = getCartKey(userEmail);
+  const prevKeyRef = useRef(storageKey);
 
-  // Persist cart to localStorage on every change
+  const [items, setItems] = useState<CartItem[]>([]);
+
+  // Load cart when session/key changes
   useEffect(() => {
+    if (status === "loading") return;
+    const loaded = loadCartFromStorage(storageKey);
+    setItems(loaded);
+    prevKeyRef.current = storageKey;
+  }, [storageKey, status]);
+
+  // Persist cart to localStorage on every change (skip during initial load)
+  const isInitialLoad = useRef(true);
+  useEffect(() => {
+    if (status === "loading") return;
+    if (isInitialLoad.current) {
+      isInitialLoad.current = false;
+      return;
+    }
     try {
-      localStorage.setItem("urbannest_cart", JSON.stringify(items));
+      localStorage.setItem(storageKey, JSON.stringify(items));
     } catch {
       // localStorage full or unavailable
     }
-  }, [items]);
+  }, [items, storageKey, status]);
+
+  // Reset initial load flag when key changes
+  useEffect(() => {
+    isInitialLoad.current = true;
+  }, [storageKey]);
 
   const addItem = useCallback(
     (product: Product, quantity = 1, color?: string, size?: string) => {

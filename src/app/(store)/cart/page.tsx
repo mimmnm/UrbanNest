@@ -3,8 +3,9 @@
 import { motion } from "framer-motion";
 import Image from "next/image";
 import Link from "next/link";
-import { Minus, Plus, X, ShoppingBag, ArrowRight } from "lucide-react";
+import { Minus, Plus, X, ShoppingBag, ArrowRight, LogIn } from "lucide-react";
 import { useCart } from "@/lib/cart-context";
+import { useSession } from "next-auth/react";
 import { formatPrice } from "@/lib/utils";
 
 function getProductImage(product: { image?: string; images?: string[] }): string {
@@ -15,6 +16,7 @@ function getProductImage(product: { image?: string; images?: string[] }): string
 
 export default function CartPage() {
   const { items, removeItem, updateQuantity, totalPrice, totalItems } = useCart();
+  const { data: session } = useSession();
 
   if (items.length === 0) {
     return (
@@ -178,13 +180,23 @@ export default function CartPage() {
                 </div>
               </div>
 
-              <Link
-                href="/checkout"
-                className="w-full flex items-center justify-center gap-2 py-4 bg-[#111111] text-white rounded-xl font-display text-sm font-medium hover:bg-[#66a80f] transition-colors duration-300"
-              >
-                Proceed to Checkout
-                <ArrowRight size={16} />
-              </Link>
+              {session?.user ? (
+                <Link
+                  href="/checkout"
+                  className="w-full flex items-center justify-center gap-2 py-4 bg-[#111111] text-white rounded-xl font-display text-sm font-medium hover:bg-[#66a80f] transition-colors duration-300"
+                >
+                  Proceed to Checkout
+                  <ArrowRight size={16} />
+                </Link>
+              ) : (
+                <Link
+                  href="/login"
+                  className="w-full flex items-center justify-center gap-2 py-4 bg-[#111111] text-white rounded-xl font-display text-sm font-medium hover:bg-[#66a80f] transition-colors duration-300"
+                >
+                  <LogIn size={16} />
+                  Sign In to Checkout
+                </Link>
+              )}
 
               <Link
                 href="/products"

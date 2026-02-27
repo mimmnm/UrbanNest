@@ -3,15 +3,45 @@
 import { motion } from "framer-motion";
 import Link from "next/link";
 import Image from "next/image";
-import { Heart, ArrowRight, Trash2, ShoppingBag } from "lucide-react";
+import { Heart, ArrowRight, Trash2, ShoppingBag, LogIn } from "lucide-react";
 import { useWishlist } from "@/lib/wishlist-context";
 import { useCart } from "@/lib/cart-context";
+import { useSession } from "next-auth/react";
 import { formatPrice } from "@/lib/utils";
 import type { Product as CartProduct } from "@/lib/types";
 
 export default function WishlistPage() {
+  const { data: session, status } = useSession();
   const { items, removeItem } = useWishlist();
   const { addItem } = useCart();
+
+  // Show login prompt for unauthenticated users
+  if (status === "loading") {
+    return (
+      <div className="min-h-[70vh] flex items-center justify-center">
+        <div className="w-8 h-8 border-2 border-[#66a80f]/30 border-t-[#66a80f] rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  if (!session?.user) {
+    return (
+      <div className="min-h-[70vh] flex flex-col items-center justify-center px-5">
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-center">
+          <div className="w-20 h-20 rounded-full bg-[#f8f6f3] flex items-center justify-center mx-auto mb-6">
+            <Heart size={32} className="text-[#66a80f]" />
+          </div>
+          <h1 className="font-display text-2xl font-semibold text-[#111111] mb-3">Sign In to View Wishlist</h1>
+          <p className="text-[#a1a1aa] text-sm mb-8 max-w-sm">
+            Please sign in to save and view your favorite items.
+          </p>
+          <Link href="/login" className="inline-flex items-center gap-2 px-8 py-3.5 bg-[#111111] text-white rounded-full font-display text-sm font-medium tracking-wide hover:bg-[#66a80f] transition-colors duration-300">
+            <LogIn size={16} /> Sign In
+          </Link>
+        </motion.div>
+      </div>
+    );
+  }
 
   const handleAddToCart = (product: typeof items[0]) => {
     const cartProduct: CartProduct = {
