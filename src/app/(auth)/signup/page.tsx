@@ -42,7 +42,11 @@ export default function SignupPage() {
       const data = await res.json();
 
       if (!res.ok) {
-        setError(data.error);
+        if (res.status === 409) {
+          setError("ACCOUNT_EXISTS");
+        } else {
+          setError(data.error);
+        }
         return;
       }
 
@@ -122,7 +126,16 @@ export default function SignupPage() {
               animate={{ opacity: 1, y: 0 }}
               className="mb-3 p-3 bg-red-50 border border-red-200 rounded-2xl text-sm text-red-600 font-display"
             >
-              {error}
+              {error === "ACCOUNT_EXISTS" ? (
+                <span>
+                  An account with this email already exists.{" "}
+                  <Link href="/login" className="underline font-semibold text-[#66a80f] hover:text-[#5a9a0d]">
+                    Sign in instead
+                  </Link>
+                </span>
+              ) : (
+                error
+              )}
             </motion.div>
           )}
 

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { connectDB } from "@/lib/mongodb";
 import { User } from "@/models/User";
 import { Otp } from "@/models/Otp";
+import { sendWelcomeEmail } from "@/lib/resend";
 
 export async function POST(request: NextRequest) {
   try {
@@ -71,8 +72,11 @@ export async function POST(request: NextRequest) {
     // Delete the OTP record
     await Otp.deleteOne({ _id: otpRecord._id });
 
+    // Send welcome email (non-blocking — failure won't affect verification)
+    sendWelcomeEmail(user.email, user.name).catch(() => {});
+
     return NextResponse.json({
-      message: "Email verified successfully! You can now sign in.",
+      message: "Your account has been successfully activated! You can now sign in.",
       verified: true,
     });
   } catch (error: unknown) {

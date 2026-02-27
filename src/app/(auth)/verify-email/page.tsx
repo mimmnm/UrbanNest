@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { ArrowLeft, Mail, ShieldCheck, RefreshCw, CheckCircle } from "lucide-react";
+import { ArrowLeft, Mail, ShieldCheck, RefreshCw, CheckCircle, PartyPopper } from "lucide-react";
 
 function VerifyEmailContent() {
   const router = useRouter();
@@ -83,7 +83,7 @@ function VerifyEmailContent() {
         return;
       }
       setSuccess(data.message);
-      setTimeout(() => router.push("/login"), 2000);
+      setTimeout(() => router.push("/login"), 3500);
     } catch {
       setError("Something went wrong.");
     } finally {
@@ -167,11 +167,40 @@ function VerifyEmailContent() {
           </div>
 
           {success && (
-            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
-              className="mb-5 p-4 bg-emerald-50 border border-emerald-200 rounded-2xl flex items-center gap-3"
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ type: "spring", duration: 0.6 }}
+              className="text-center py-6"
             >
-              <CheckCircle size={20} className="text-emerald-500 shrink-0" />
-              <p className="text-sm text-emerald-700 font-display">{success}</p>
+              <motion.div
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{ type: "spring", delay: 0.15, stiffness: 200 }}
+                className="w-20 h-20 mx-auto mb-5 rounded-full bg-emerald-50 border-2 border-emerald-200 flex items-center justify-center"
+              >
+                <CheckCircle size={40} className="text-emerald-500" />
+              </motion.div>
+              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
+                <h2 className="font-display text-2xl font-bold text-[#111] mb-2 flex items-center justify-center gap-2">
+                  Account Activated <PartyPopper size={22} className="text-[#66a80f]" />
+                </h2>
+                <p className="text-sm text-[#555] mb-1 font-display">{success}</p>
+                <p className="text-xs text-[#a1a1aa] font-display">Redirecting to login page...</p>
+              </motion.div>
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.5 }}
+                className="mt-6"
+              >
+                <Link
+                  href="/login"
+                  className="inline-flex items-center gap-2 px-8 py-3 bg-[#66a80f] text-white rounded-full font-display text-sm font-medium hover:bg-[#5a9a0d] transition-colors"
+                >
+                  Sign In Now →
+                </Link>
+              </motion.div>
             </motion.div>
           )}
 

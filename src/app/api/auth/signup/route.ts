@@ -49,12 +49,16 @@ export async function POST(request: NextRequest) {
 
         await sendOtpEmail(email.toLowerCase(), otp, "signup");
         return NextResponse.json(
-          { message: "OTP sent to your email", requiresVerification: true },
-          { status: 201 }
+          {
+            message: "A verification code has been resent to your email. Please verify to activate your account.",
+            requiresVerification: true,
+            isResend: true,
+          },
+          { status: 200 }
         );
       }
       return NextResponse.json(
-        { error: "An account with this email already exists" },
+        { error: "An account with this email already exists. Please sign in instead." },
         { status: 409 }
       );
     }
